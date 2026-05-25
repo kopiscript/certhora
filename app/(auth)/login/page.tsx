@@ -4,7 +4,7 @@ import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import Link from "next/link"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +18,8 @@ const FEATURES = [
 
 export default function LoginPage() {
   const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -27,10 +29,9 @@ export default function LoginPage() {
     setPending(true)
     setError("")
 
-    const data = new FormData(e.currentTarget)
     const result = await signIn("credentials", {
-      email: data.get("email"),
-      password: data.get("password"),
+      email,
+      password,
       redirect: false,
     })
 
@@ -112,6 +113,21 @@ export default function LoginPage() {
 
       {/* ── Right form panel ───────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col">
+
+        {/* Indeterminate loading bar */}
+        <div className="h-0.5 w-full overflow-hidden" style={{ background: "var(--ct-border)" }}>
+          {pending && (
+            <div
+              className="h-full rounded-full"
+              style={{
+                background: "var(--ct-blue)",
+                animation: "indeterminate 1.4s ease-in-out infinite",
+                transformOrigin: "left center",
+              }}
+            />
+          )}
+        </div>
+
         <div className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-[360px] space-y-8">
 
@@ -134,7 +150,7 @@ export default function LoginPage() {
             {/* Error banner */}
             {error && (
               <div
-                className="px-4 py-3 rounded-lg text-sm"
+                className="px-4 py-3 rounded-lg text-sm animate-in fade-in slide-in-from-top-1 duration-200"
                 style={{
                   background: "var(--ct-error-bg)",
                   border: "1px solid var(--ct-error-border)",
@@ -147,18 +163,23 @@ export default function LoginPage() {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            <form
+              onSubmit={handleSubmit}
+              className={`space-y-5 transition-opacity duration-200 ${pending ? "opacity-60 pointer-events-none" : "opacity-100"}`}
+              noValidate
+            >
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-xs uppercase tracking-widest text-muted-foreground">
                   Email
                 </Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   required
                   autoComplete="email"
                   placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   className="h-11 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                 />
               </div>
@@ -175,11 +196,12 @@ export default function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
-                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     autoComplete="current-password"
                     placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
                     className="h-11 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary pr-11"
                   />
                   <button
@@ -197,8 +219,9 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={pending}
-                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2 transition-all"
               >
+                {pending && <Loader2 size={15} className="animate-spin" />}
                 {pending ? "Signing in…" : "Sign in"}
               </Button>
             </form>

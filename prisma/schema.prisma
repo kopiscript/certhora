@@ -35,6 +35,13 @@ enum EmailStatus {
   BOUNCED
 }
 
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
 // ─── Auth + User ──────────────────────────────────────────────────────────────
 
 model User {
@@ -52,11 +59,8 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  // NextAuth adapter relations
   accounts            Account[]
   sessions            Session[]
-
-  // Business relations
   organizer           Organizer?
   paymentTransactions PaymentTransaction[]
 
@@ -96,8 +100,8 @@ model Session {
 
 model VerificationToken {
   identifier String
-  token      String   @unique
   expires    DateTime
+  token      String   @unique
 
   @@unique([identifier, token])
 }
@@ -117,11 +121,11 @@ model Organizer {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   events       Event[]
   subscription Subscription?
+  templates    Template[]
 
   @@index([tier])
 }
 
-// Current subscription billing record (one-to-one with Organizer)
 model Subscription {
   organizerCd String    @id @db.VarChar(4)
   tier        Tier
@@ -135,46 +139,72 @@ model Subscription {
   @@index([suspendDate])
 }
 
+// ─── Template (organizer-owned, reusable across events) ───────────────────────
+
+model Template {
+  id           String  @id @default(cuid())
+  organizerCd  String  @db.VarChar(4)
+  name         String  // display name e.g. "Workshop Blue"
+  imageUrl     String? // background image URL (local /uploads or future R2)
+
+  primaryColor String  @default("#1D4ED8") @db.VarChar(16)
+
+  // ── Name overlay ──
+  nameCenterX  Float   @default(600)
+  nameY        Float   @default(340)
+  nameMaxWidth Float   @default(840)
+  nameFontSize Float   @default(52)
+  nameFont     String  @default("Arial, Helvetica, sans-serif") @db.VarChar(64)
+  nameColor    String  @default("#1E293B") @db.VarChar(18)
+
+  // ── QR code ──
+  qrX          Float   @default(1010)
+  qrY          Float   @default(628)
+  qrSize       Float   @default(140)
+
+  // ── Design ──
+  certIdFont    String  @default("monospace") @db.VarChar(64)
+  certIdColor   String  @default("#64748B") @db.VarChar(18)
+  showWatermark Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerCd], references: [organizerCd], onDelete: Cascade)
+  events    Event[]
+
+  @@index([organizerCd])
+}
+
 model Event {
-  eventCode   String    @id @db.VarChar(7)
+  eventCode   String      @id @db.VarChar(10)
+  templateId  String?
+  status      EventStatus @default(DRAFT)
   eventName   String
   eventDate   DateTime?
   issuedDate  DateTime?
   expiryDate  DateTime?
-  description String?   @db.VarChar(1500)
+  description String?     @db.VarChar(1500)
   skills      String[]
-  organizerCd String    @db.VarChar(4)
-  createdAt   DateTime  @default(now())
+  organizerCd String      @db.VarChar(4)
+  createdAt   DateTime    @default(now())
 
   organizer    Organizer       @relation(fields: [organizerCd], references: [organizerCd], onDelete: Restrict)
-  template     Template?
+  template     Template?       @relation(fields: [templateId], references: [id], onDelete: SetNull)
   certificates Certificate[]
   feedback     EventFeedback[]
 
   @@index([organizerCd])
+  @@index([status])
   @@index([eventDate])
   @@index([expiryDate])
-}
-
-// One-to-one with Event — cascade delete when event is removed
-model Template {
-  eventCode    String  @id @db.VarChar(7)
-  primaryColor String  @db.VarChar(16)
-  layoutPath   String  @db.VarChar(7)
-  nameFont     String  @db.VarChar(16)
-  nameColor    String  @db.VarChar(18)
-  certIdFont   String  @db.VarChar(5)
-  certIdColor  String  @db.VarChar(18)
-  watermark    Boolean @default(false)
-
-  event Event @relation(fields: [eventCode], references: [eventCode], onDelete: Cascade)
 }
 
 model Certificate {
   certId           String      @id @db.VarChar(12)
   participantName  String
   participantEmail String      @db.VarChar(100)
-  eventCode        String      @db.VarChar(7)
+  eventCode        String      @db.VarChar(10)
   createdAt        DateTime    @default(now())
   shareCount       Int         @default(0)
   viewCount        Int         @default(0)
@@ -193,7 +223,7 @@ model Certificate {
 
 model EventFeedback {
   id        Int      @id @default(autoincrement())
-  eventCode String   @db.VarChar(7)
+  eventCode String   @db.VarChar(10)
   npsScore  Int
   comment   String?
   createdAt DateTime @default(now())
