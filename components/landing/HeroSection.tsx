@@ -19,10 +19,7 @@ const HeroSection: React.FC = () => {
           transition={{ duration: 0.45, ease }}
           className="flex items-center gap-3 mb-10"
         >
-          <span className="block h-px w-5 bg-indigo-500/70" />
-          <span className="text-[10px] font-semibold tracking-[0.22em] uppercase text-indigo-400/80">
-            Digital Credentials Platform
-          </span>
+          
         </motion.div>
 
         {/* Headline */}
