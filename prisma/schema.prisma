@@ -4,25 +4,67 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          Role      @default(USER)
-  accounts      Account[]
-  sessions      Session[]
-}
+// ─── Enums ────────────────────────────────────────────────────────────────────
 
-enum Role {
-  USER
+enum UserType {
+  ORGANIZER
   ADMIN
 }
+
+enum Tier {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum EmailStatus {
+  PENDING
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+}
+
+// ─── Auth + User ──────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     DateTime?
+  image             String?
+  name              String?
+  passwordHash      String?
+  userType          UserType  @default(ORGANIZER)
+  isVerified        Boolean   @default(false)
+  verificationToken String?   @unique
+  resetToken        String?   @unique
+  resetExpires      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // NextAuth adapter relations
+  accounts            Account[]
+  sessions            Session[]
+
+  // Business relations
+  organizer           Organizer?
+  paymentTransactions PaymentTransaction[]
+
+  @@index([verificationToken])
+  @@index([resetToken])
+}
+
+// ─── NextAuth Adapter Models ──────────────────────────────────────────────────
 
 model Account {
   id                String  @id @default(cuid())
@@ -38,7 +80,7 @@ model Account {
   id_token          String?
   session_state     String?
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -49,7 +91,7 @@ model Session {
   userId       String
   expires      DateTime
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -58,4 +100,126 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ─── Business Models ──────────────────────────────────────────────────────────
+
+model Organizer {
+  organizerCd   String    @id @db.VarChar(4)
+  userId        String    @unique
+  orgName       String
+  socialLink    String?
+  tier          Tier      @default(FREE)
+  certQuota     Int       @default(0)
+  expiryDate    DateTime?
+  subscribeDate DateTime?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events       Event[]
+  subscription Subscription?
+
+  @@index([tier])
+}
+
+// Current subscription billing record (one-to-one with Organizer)
+model Subscription {
+  organizerCd String    @id @db.VarChar(4)
+  tier        Tier
+  certQuota   Int
+  createdAt   DateTime  @default(now())
+  suspendDate DateTime?
+
+  organizer Organizer @relation(fields: [organizerCd], references: [organizerCd], onDelete: Cascade)
+
+  @@index([tier])
+  @@index([suspendDate])
+}
+
+model Event {
+  eventCode   String    @id @db.VarChar(7)
+  eventName   String
+  eventDate   DateTime?
+  issuedDate  DateTime?
+  expiryDate  DateTime?
+  description String?   @db.VarChar(1500)
+  skills      String[]
+  organizerCd String    @db.VarChar(4)
+  createdAt   DateTime  @default(now())
+
+  organizer    Organizer       @relation(fields: [organizerCd], references: [organizerCd], onDelete: Restrict)
+  template     Template?
+  certificates Certificate[]
+  feedback     EventFeedback[]
+
+  @@index([organizerCd])
+  @@index([eventDate])
+  @@index([expiryDate])
+}
+
+// One-to-one with Event — cascade delete when event is removed
+model Template {
+  eventCode    String  @id @db.VarChar(7)
+  primaryColor String  @db.VarChar(16)
+  layoutPath   String  @db.VarChar(7)
+  nameFont     String  @db.VarChar(16)
+  nameColor    String  @db.VarChar(18)
+  certIdFont   String  @db.VarChar(5)
+  certIdColor  String  @db.VarChar(18)
+  watermark    Boolean @default(false)
+
+  event Event @relation(fields: [eventCode], references: [eventCode], onDelete: Cascade)
+}
+
+model Certificate {
+  certId           String      @id @db.VarChar(12)
+  participantName  String
+  participantEmail String      @db.VarChar(100)
+  eventCode        String      @db.VarChar(7)
+  createdAt        DateTime    @default(now())
+  shareCount       Int         @default(0)
+  viewCount        Int         @default(0)
+  emailStatus      EmailStatus @default(PENDING)
+  metadata         Json?
+  queuedAt         DateTime?
+  sendAttempts     Int         @default(0)
+
+  event Event @relation(fields: [eventCode], references: [eventCode], onDelete: Restrict)
+
+  @@index([eventCode])
+  @@index([participantEmail])
+  @@index([emailStatus])
+  @@index([eventCode, emailStatus])
+}
+
+model EventFeedback {
+  id        Int      @id @default(autoincrement())
+  eventCode String   @db.VarChar(7)
+  npsScore  Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventCode], references: [eventCode], onDelete: Cascade)
+
+  @@index([eventCode])
+}
+
+model PaymentTransaction {
+  id            Int           @id @default(autoincrement())
+  userId        String
+  billcode      String        @db.VarChar(100)
+  amount        Decimal       @db.Decimal(10, 2)
+  externalRef   String?       @db.VarChar(60)
+  tierRequested Tier
+  certQuotaReq  Int
+  status        PaymentStatus @default(PENDING)
+  refno         String?       @db.VarChar(50)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([status])
+  @@index([billcode])
+  @@index([status, createdAt])
 }

@@ -3,11 +3,24 @@
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import Link from "next/link"
+import { Eye, EyeOff } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
+const FEATURES = [
+  "Instant QR verification on every certificate",
+  "Bulk CSV import — thousands of recipients at once",
+  "Beautiful, brandable certificate templates",
+  "Automated email delivery on publish",
+]
 
 export default function LoginPage() {
   const router = useRouter()
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -22,7 +35,7 @@ export default function LoginPage() {
     })
 
     if (result?.error) {
-      setError("Invalid email or password")
+      setError("Invalid email or password.")
       setPending(false)
     } else {
       router.push("/dashboard")
@@ -31,47 +44,179 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 p-8 rounded-lg border"
+    <div className="flex min-h-screen bg-background">
+
+      {/* ── Left branded panel ─────────────────────────────────────────── */}
+      <aside
+        className="hidden lg:flex w-[460px] shrink-0 flex-col justify-between p-12 relative overflow-hidden border-r border-border"
+        style={{ background: "var(--card)" }}
       >
-        <h1 className="text-2xl font-semibold">Sign in</h1>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="w-full border rounded px-3 py-2 text-sm"
-          />
+        {/* Dot grid texture */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+          }}
+        />
+        {/* Blue ambient glow */}
+        <div
+          aria-hidden
+          className="absolute -top-48 -right-48 w-[520px] h-[520px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(37,99,235,0.11) 0%, transparent 68%)" }}
+        />
+
+        {/* Logo */}
+        <div className="relative z-10 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground font-bold text-sm">C</span>
+          </div>
+          <span className="text-foreground font-semibold tracking-tight">Certhora</span>
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            className="w-full border rounded px-3 py-2 text-sm"
-          />
+
+        {/* Copy + features */}
+        <div className="relative z-10 space-y-8">
+          <div>
+            <h2 className="text-[26px] font-bold leading-snug tracking-tight text-foreground">
+              Professional certificates,<br />built for scale.
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              From single events to enterprise deployments — manage,
+              distribute, and verify digital credentials in one place.
+            </p>
+          </div>
+
+          <ul className="space-y-3.5">
+            {FEATURES.map((f) => (
+              <li key={f} className="flex items-start gap-3">
+                <div
+                  className="mt-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: "var(--ct-blue-dim)" }}
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden>
+                    <path d="M1.5 4L3 5.5L6.5 2" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <span className="text-sm text-muted-foreground">{f}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full bg-black text-white rounded px-3 py-2 text-sm font-medium disabled:opacity-50"
-        >
-          {pending ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+
+        {/* Trust line */}
+        <p className="relative z-10 text-xs" style={{ color: "var(--ct-text-3)" }}>
+          Trusted by event organizers across Malaysia
+        </p>
+      </aside>
+
+      {/* ── Right form panel ───────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex items-center justify-center px-6 py-12">
+          <div className="w-full max-w-[360px] space-y-8">
+
+            {/* Mobile-only logo */}
+            <div className="flex items-center gap-2.5 lg:hidden">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xs">C</span>
+              </div>
+              <span className="text-foreground font-semibold">Certhora</span>
+            </div>
+
+            {/* Heading */}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Sign in to your Certhora account
+              </p>
+            </div>
+
+            {/* Error banner */}
+            {error && (
+              <div
+                className="px-4 py-3 rounded-lg text-sm"
+                style={{
+                  background: "var(--ct-error-bg)",
+                  border: "1px solid var(--ct-error-border)",
+                  color: "var(--ct-error)",
+                }}
+                role="alert"
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  className="h-11 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Password
+                  </Label>
+                  <span className="text-xs text-primary hover:text-blue-400 cursor-pointer transition-colors">
+                    Forgot password?
+                  </span>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    className="h-11 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={pending}
+                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              >
+                {pending ? "Signing in…" : "Sign in"}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="text-primary hover:text-blue-400 transition-colors font-medium">
+                Create one
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        <footer className="py-5 text-center text-xs" style={{ color: "var(--ct-text-3)" }}>
+          © 2025 Certhora. All rights reserved.
+        </footer>
+      </div>
+
     </div>
   )
 }
