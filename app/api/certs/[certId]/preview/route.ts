@@ -5,6 +5,7 @@ import QRCode from "qrcode"
 import {
   buildProceduralTemplate,
   calcScaledFontSize,
+  type AdditionalPlaceholder,
 } from "@/lib/certificate-generator"
 
 interface Props { params: Promise<{ certId: string }> }
@@ -119,6 +120,17 @@ export async function GET(_req: Request, { params }: Props) {
   <text x="60" y="742" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#475569">${escapeXml(fmt(cert.createdAt))}</text>
 </svg>`) : null
 
+  // ── Additional placeholders ───────────────────────────────────────────────
+  const additionalPlaceholders = (tpl?.additional ?? []) as unknown as AdditionalPlaceholder[]
+  const additionalSvg = additionalPlaceholders.length > 0
+    ? Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  ${additionalPlaceholders.map(p => `  <text
+    x="${p.x}" y="${p.y}" dominant-baseline="middle"
+    font-family="${escapeXml(p.font)}" font-size="${p.fontSize}px"
+    fill="${escapeXml(p.color)}">${escapeXml(p.value)}</text>`).join("\n")}
+</svg>`)
+    : null
+
   // ── Composite ─────────────────────────────────────────────────────────────
   const layers: sharp.OverlayOptions[] = [
     { input: nameSvg, top: 0, left: 0 },
@@ -126,6 +138,7 @@ export async function GET(_req: Request, { params }: Props) {
     { input: certIdSvg, top: 0, left: 0 },
   ]
   if (extraSvg) layers.push({ input: extraSvg, top: 0, left: 0 })
+  if (additionalSvg) layers.push({ input: additionalSvg, top: 0, left: 0 })
 
   const finalPng = await sharp(templatePng).composite(layers).png().toBuffer()
 

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { ArrowLeft, CalendarDays, LayoutTemplate, Users } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
+import { BadgeUpload } from "./BadgeUpload"
+import { EditDesign } from "./EditDesign"
 
 interface Props { params: Promise<{ eventCode: string }> }
 
@@ -34,7 +36,7 @@ export default async function EventDetailPage({ params }: Props) {
   const event = await prisma.event.findUnique({
     where: { eventCode },
     include: {
-      template: true,
+      template: true,   // 1-to-1 by eventCode
       certificates: {
         orderBy: { createdAt: "asc" },
         select: {
@@ -108,13 +110,19 @@ export default async function EventDetailPage({ params }: Props) {
           <InfoCard
             icon={<LayoutTemplate size={14} />}
             label="Template"
-            value={event.template?.name ?? "Procedural"}
+            value={event.template?.imageUrl ? "Custom background" : "Procedural"}
           />
           <InfoCard
             icon={<Users size={14} />}
             label="Participants"
             value={`${event._count.certificates}`}
             sub={`${pendingCount} pending · ${queuedCount} queued · ${sentCount} sent`}
+          />
+          <InfoCard
+            icon={<span style={{ fontSize: 13 }}>🎖</span>}
+            label="Digital Badge"
+            value={event.hasBadge ? "Enabled" : "Disabled"}
+            sub={event.hasBadge ? "Badge shown on cert page" : undefined}
           />
         </div>
 
@@ -139,6 +147,14 @@ export default async function EventDetailPage({ params }: Props) {
               ))}
             </div>
           </div>
+        )}
+
+        {/* ── Certificate design editor ────────────────────────────────── */}
+        <EditDesign eventCode={eventCode} template={event.template ?? null} />
+
+        {/* Badge upload */}
+        {event.hasBadge && (
+          <BadgeUpload eventCode={eventCode} currentBadgeUrl={event.badgeUrl ?? null} />
         )}
 
         {/* ── Quota notice ────────────────────────────────────────────── */}

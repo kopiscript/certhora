@@ -8,7 +8,8 @@
       "Bash(mkdir -p \"C:/Users/adib/certhora/app/api/templates/upload\")",
       "Bash(mkdir -p \"C:/Users/adib/certhora/app/api/templates/[id]\")",
       "Bash(mkdir -p \"C:/Users/adib/certhora/app/api/events/[eventCode]/participants\")",
-      "Bash(mkdir -p \"C:/Users/adib/certhora/public/uploads/templates\")"
+      "Bash(mkdir -p \"C:/Users/adib/certhora/public/uploads/templates\")",
+      "Bash(npx prisma *)"
     ]
   }
 }

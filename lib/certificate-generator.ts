@@ -24,6 +24,17 @@ export interface CertDesign {
   showWatermark: boolean
 }
 
+export interface AdditionalPlaceholder {
+  id: string
+  label: string
+  value: string
+  x: number
+  y: number
+  fontSize: number
+  color: string
+  font: string
+}
+
 export interface URLConfig {
   baseUrl: string
   viewPageName: string
@@ -254,6 +265,29 @@ export function buildProceduralTemplate(opts: {
   return Buffer.from(svg)
 }
 
+// ─── Additional placeholders SVG ─────────────────────────────────────────────
+
+function buildAdditionalsSVG(
+  canvasW: number,
+  canvasH: number,
+  placeholders: AdditionalPlaceholder[]
+): Buffer {
+  if (placeholders.length === 0) return Buffer.from(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg"/>`)
+
+  const texts = placeholders.map(p => `  <text
+    x="${p.x}"
+    y="${p.y}"
+    dominant-baseline="middle"
+    font-family="${escapeXml(p.font)}"
+    font-size="${p.fontSize}px"
+    fill="${escapeXml(p.color)}"
+  >${escapeXml(p.value)}</text>`).join("\n")
+
+  return Buffer.from(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg">
+${texts}
+</svg>`)
+}
+
 // ─── Core generator ───────────────────────────────────────────────────────────
 
 export async function generateCertificateImage(
@@ -263,7 +297,8 @@ export async function generateCertificateImage(
   qrLayout: QRLayout,
   design: CertDesign,
   urlConfig: URLConfig,
-  logoBuffer?: Buffer
+  logoBuffer?: Buffer,
+  additional: AdditionalPlaceholder[] = []
 ): Promise<CertificateOutput> {
   const qrUrl = buildCertUrl(urlConfig, participant.certId)
 
@@ -277,12 +312,18 @@ export async function generateCertificateImage(
     Promise.resolve(buildCertIdSVG(width, height, participant.certId, qrLayout, design)),
   ])
 
+  const layers: import("sharp").OverlayOptions[] = [
+    { input: nameSvg, top: 0, left: 0 },
+    { input: qrBuffer, top: Math.round(qrLayout.y), left: Math.round(qrLayout.x) },
+    { input: certIdSvg, top: 0, left: 0 },
+  ]
+
+  if (additional.length > 0) {
+    layers.push({ input: buildAdditionalsSVG(width, height, additional), top: 0, left: 0 })
+  }
+
   const imageBuffer = await sharp(templateBuffer)
-    .composite([
-      { input: nameSvg, top: 0, left: 0 },
-      { input: qrBuffer, top: Math.round(qrLayout.y), left: Math.round(qrLayout.x) },
-      { input: certIdSvg, top: 0, left: 0 },
-    ])
+    .composite(layers)
     .png()
     .toBuffer()
 
@@ -297,7 +338,8 @@ export async function generateCertificateBatch(
   design: CertDesign,
   urlConfig: URLConfig,
   logoBuffer?: Buffer,
-  concurrency = 5
+  concurrency = 5,
+  additional: AdditionalPlaceholder[] = []
 ): Promise<CertificateOutput[]> {
   const results: CertificateOutput[] = []
 
@@ -305,7 +347,7 @@ export async function generateCertificateBatch(
     const chunk = participants.slice(i, i + concurrency)
     const batch = await Promise.all(
       chunk.map(p =>
-        generateCertificateImage(templateBuffer, p, nameLayout, qrLayout, design, urlConfig, logoBuffer)
+        generateCertificateImage(templateBuffer, p, nameLayout, qrLayout, design, urlConfig, logoBuffer, additional)
       )
     )
     results.push(...batch)

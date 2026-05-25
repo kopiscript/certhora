@@ -6,17 +6,15 @@ import { signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   CalendarDays,
-  LayoutTemplate,
   Settings,
   LogOut,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 const NAV = [
-  { label: "Dashboard", href: "/dashboard",           icon: LayoutDashboard },
-  { label: "Events",    href: "/dashboard/events",    icon: CalendarDays },
-  { label: "Templates", href: "/dashboard/templates", icon: LayoutTemplate },
-  { label: "Config",    href: "/config",              icon: Settings },
+  { label: "Dashboard", href: "/dashboard",        icon: LayoutDashboard },
+  { label: "Events",    href: "/dashboard/events", icon: CalendarDays },
+  { label: "Config",    href: "/config",           icon: Settings },
 ]
 
 interface AppSidebarProps {

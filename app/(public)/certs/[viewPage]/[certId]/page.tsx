@@ -29,6 +29,8 @@ export default async function CertViewPage({ params }: Props) {
       event: {
         include: {
           organizer: { select: { orgName: true, socialLink: true } },
+          template: { select: { primaryColor: true } },
+          // hasBadge and badgeUrl fetched via event fields below
         },
       },
     },
@@ -230,6 +232,73 @@ export default async function CertViewPage({ params }: Props) {
             )}
           </div>
         </div>
+
+        {/* Badge — shown only when organizer has uploaded a badge for this event */}
+        {event.hasBadge && event.badgeUrl && (
+          <div
+            style={{
+              background: "var(--ct-surface)",
+              border: "1px solid var(--ct-border)",
+              borderRadius: 14,
+              padding: 24,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 24,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/certs/${cert.certId}/badge`}
+              alt={`Badge for ${cert.participantName}`}
+              style={{ width: 120, height: 120, flexShrink: 0, borderRadius: "50%" }}
+            />
+            <div>
+              <span
+                style={{
+                  display: "inline-block",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--ct-blue)",
+                  background: "var(--ct-blue-dim)",
+                  border: "1px solid rgba(37,99,235,0.20)",
+                  borderRadius: 5,
+                  padding: "2px 8px",
+                  marginBottom: 8,
+                }}
+              >
+                Digital Badge
+              </span>
+              <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ct-text)", margin: "0 0 4px" }}>
+                {event.eventName}
+              </p>
+              <p style={{ fontSize: 13, color: "var(--ct-text-2)", margin: "0 0 12px" }}>
+                Issued to {cert.participantName}
+              </p>
+              <a
+                href={`/api/certs/${cert.certId}/badge`}
+                download={`badge-${cert.certId}.png`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--ct-blue)",
+                  background: "var(--ct-blue-dim)",
+                  border: "1px solid rgba(37,99,235,0.20)",
+                  borderRadius: 7,
+                  padding: "6px 12px",
+                  textDecoration: "none",
+                }}
+              >
+                Download badge
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Stats row */}
         <div

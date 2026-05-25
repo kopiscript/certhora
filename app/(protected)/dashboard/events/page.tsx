@@ -26,7 +26,7 @@ export default async function EventsPage() {
     where: { organizerCd: organizer.organizerCd },
     orderBy: { createdAt: "desc" },
     include: {
-      template: { select: { name: true, primaryColor: true } },
+      template: { select: { primaryColor: true, imageUrl: true } },
       _count: { select: { certificates: true } },
     },
   })
@@ -81,16 +81,7 @@ export default async function EventsPage() {
               return (
                 <Link key={ev.eventCode} href={`/dashboard/events/${ev.eventCode}`}
                   style={{ textDecoration: "none" }}>
-                  <div style={{
-                    background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
-                    borderRadius: 12, padding: "16px 20px",
-                    display: "flex", alignItems: "center", gap: 16,
-                    transition: "border-color 150ms",
-                    cursor: "pointer",
-                  }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(37,99,235,0.35)")}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--ct-border)")}
-                  >
+                  <div className="event-card-row">
                     {/* Color dot */}
                     <div style={{
                       width: 40, height: 40, borderRadius: 10, flexShrink: 0,
@@ -124,9 +115,9 @@ export default async function EventsPage() {
                             <Clock size={11} />{fmt(ev.eventDate)}
                           </span>
                         )}
-                        {ev.template && (
+                        {ev.template?.imageUrl && (
                           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <FileText size={11} />{ev.template.name}
+                            <FileText size={11} />Custom design
                           </span>
                         )}
                       </div>

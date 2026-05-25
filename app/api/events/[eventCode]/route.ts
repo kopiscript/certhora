@@ -70,7 +70,6 @@ export async function PATCH(req: Request, { params }: Props) {
     where: { eventCode },
     data: {
       eventName:   typeof body.eventName === "string"   ? body.eventName.trim()   : undefined,
-      templateId:  typeof body.templateId === "string"  ? body.templateId         : undefined,
       status:      typeof body.status === "string"      ? (body.status as never)  : undefined,
       eventDate:   body.eventDate   ? new Date(body.eventDate as string)   : undefined,
       expiryDate:  body.expiryDate  ? new Date(body.expiryDate as string)  : undefined,

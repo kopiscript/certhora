@@ -186,6 +186,21 @@
   100% { transform: translateX(200%)  scaleX(0.4); }
 }
 
+.event-card-row {
+  background: var(--ct-surface);
+  border: 1px solid var(--ct-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+.event-card-row:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
 .ct-label {
   display: block;
   font-size: 11px;

@@ -9,6 +9,7 @@ import {
   type QRLayout,
   type CertDesign,
   type URLConfig,
+  type AdditionalPlaceholder,
 } from "@/lib/certificate-generator"
 import sharp from "sharp"
 
@@ -31,7 +32,7 @@ export async function POST(
     where: { eventCode },
     include: {
       organizer: { select: { orgName: true } },
-      template: true,
+      template: true,   // 1-to-1, eventCode PK
     },
   })
   if (!event || event.organizerCd !== organizer.organizerCd) {
@@ -119,6 +120,8 @@ export async function POST(
     viewPageName: "view",
   }
 
+  const additional = (tpl?.additional ?? []) as unknown as AdditionalPlaceholder[]
+
   // ── Generate ──────────────────────────────────────────────────────────────
   let outputs
   try {
@@ -130,7 +133,8 @@ export async function POST(
       design,
       urlConfig,
       undefined,
-      5
+      5,
+      additional
     )
   } catch (err) {
     return NextResponse.json(

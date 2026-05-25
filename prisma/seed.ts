@@ -14,8 +14,8 @@ async function main() {
   // ── Clean ─────────────────────────────────────────────────────────────────
   await prisma.certificate.deleteMany({ where: { eventCode: "GDG2025" } })
   await prisma.eventFeedback.deleteMany({ where: { eventCode: "GDG2025" } })
+  await prisma.template.deleteMany({ where: { eventCode: "GDG2025" } })
   await prisma.event.deleteMany({ where: { eventCode: "GDG2025" } })
-  await prisma.template.deleteMany({ where: { organizerCd: "GDG" } })
   await prisma.subscription.deleteMany({ where: { organizerCd: "GDG" } })
   await prisma.organizer.deleteMany({ where: { organizerCd: "GDG" } })
   await prisma.user.deleteMany({ where: { email: "organizer@certhora.com" } })
@@ -54,11 +54,27 @@ async function main() {
   })
   console.log("  ✓ Subscription: PRO")
 
-  // ── Template ─────────────────────────────────────────────────────────────
-  const template = await prisma.template.create({
+  // ── Event ─────────────────────────────────────────────────────────────────
+  const event = await prisma.event.create({
     data: {
+      eventCode: "GDG2025",
+      status: "ACTIVE",
+      eventName: "Web Development Workshop 2025",
+      eventDate: new Date("2025-05-10"),
+      issuedDate: new Date("2025-05-11"),
+      expiryDate: new Date("2027-05-11"),
+      description:
+        "A full-day hands-on workshop covering modern web development practices including React, Next.js, TypeScript, and cloud deployment.",
+      skills: ["React", "Next.js", "TypeScript", "Tailwind CSS", "PostgreSQL", "Cloud Deployment"],
       organizerCd: "GDG",
-      name: "GDG Workshop Template",
+    },
+  })
+  console.log("  ✓ Event:", event.eventName)
+
+  // ── Template (event-specific) ─────────────────────────────────────────────
+  await prisma.template.create({
+    data: {
+      eventCode: "GDG2025",
       primaryColor: "#1D4ED8",
       nameCenterX: 600,
       nameY: 340,
@@ -72,27 +88,10 @@ async function main() {
       certIdFont: "monospace",
       certIdColor: "#64748B",
       showWatermark: false,
+      additional: [],
     },
   })
-  console.log("  ✓ Template:", template.name)
-
-  // ── Event ─────────────────────────────────────────────────────────────────
-  const event = await prisma.event.create({
-    data: {
-      eventCode: "GDG2025",
-      templateId: template.id,
-      status: "ACTIVE",
-      eventName: "Web Development Workshop 2025",
-      eventDate: new Date("2025-05-10"),
-      issuedDate: new Date("2025-05-11"),
-      expiryDate: new Date("2027-05-11"),
-      description:
-        "A full-day hands-on workshop covering modern web development practices including React, Next.js, TypeScript, and cloud deployment. Participants built and deployed a production-ready application from scratch.",
-      skills: ["React", "Next.js", "TypeScript", "Tailwind CSS", "PostgreSQL", "Cloud Deployment"],
-      organizerCd: "GDG",
-    },
-  })
-  console.log("  ✓ Event:", event.eventName)
+  console.log("  ✓ Template: GDG2025")
 
   // ── Certificates ─────────────────────────────────────────────────────────
   const participants = [

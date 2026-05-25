@@ -1,78 +1,40 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, ChevronRight, ChevronLeft, Plus, Trash2, Upload } from "lucide-react"
+import { Loader2, ChevronRight, ChevronLeft, Plus, Upload } from "lucide-react"
+import { TemplateEditor, type TemplateLayout, DEFAULT_LAYOUT } from "@/components/template-editor/TemplateEditor"
 
-type Step = 1 | 2 | 3
-
-interface Template { id: string; name: string; primaryColor: string; imageUrl: string | null }
-interface Participant { name: string; email: string }
+type Step = 1 | 2
 
 export default function NewEventPage() {
   const router = useRouter()
-
-  // Step state
   const [step, setStep] = useState<Step>(1)
 
-  // Step 1 — details
+  // ── Step 1 — event details ────────────────────────────────────────────────
   const [eventName, setEventName] = useState("")
-  const [templateId, setTemplateId] = useState("")
   const [eventDate, setEventDate] = useState("")
   const [expiryDate, setExpiryDate] = useState("")
   const [description, setDescription] = useState("")
   const [skillsRaw, setSkillsRaw] = useState("")
+  const [hasBadge, setHasBadge] = useState(false)
+  const [badgeFile, setBadgeFile] = useState<File | null>(null)
+  const [badgePreview, setBadgePreview] = useState<string | null>(null)
 
-  // Step 2 — participants
-  const [csvText, setCsvText] = useState("")
-  const [participants, setParticipants] = useState<Participant[]>([])
-  const [parseError, setParseError] = useState("")
+  // ── Step 2 — certificate design ───────────────────────────────────────────
+  const [templateLayout, setTemplateLayout] = useState<TemplateLayout>(DEFAULT_LAYOUT)
+  const [templateImageUrl, setTemplateImageUrl] = useState<string | null>(null)
 
-  // Templates list
-  const [templates, setTemplates] = useState<Template[]>([])
+  const handleDesignChange = useCallback((layout: TemplateLayout, imageUrl: string | null) => {
+    setTemplateLayout(layout)
+    setTemplateImageUrl(imageUrl)
+  }, [])
 
-  // Submission
+  // ── Submission ────────────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
-  useEffect(() => {
-    fetch("/api/templates")
-      .then(r => r.json())
-      .then(setTemplates)
-      .catch(() => {})
-  }, [])
-
-  // ── CSV parser ────────────────────────────────────────────────────────────
-
-  const parseCsv = () => {
-    setParseError("")
-    const lines = csvText.trim().split("\n").filter(l => l.trim())
-    const parsed: Participant[] = []
-    const errors: string[] = []
-
-    lines.forEach((line, i) => {
-      const parts = line.split(",").map(p => p.trim())
-      if (parts.length < 2) {
-        errors.push(`Line ${i + 1}: expected "Name, email"`)
-        return
-      }
-      const [name, email] = parts
-      if (!name) { errors.push(`Line ${i + 1}: name is empty`); return }
-      if (!email.includes("@")) { errors.push(`Line ${i + 1}: invalid email`); return }
-      parsed.push({ name, email })
-    })
-
-    if (errors.length > 0) { setParseError(errors.slice(0, 3).join(" · ")); return }
-    setParticipants(parsed)
-  }
-
-  const removeParticipant = (i: number) =>
-    setParticipants(prev => prev.filter((_, idx) => idx !== i))
-
-  // ── Submit ────────────────────────────────────────────────────────────────
-
   const handleCreate = async () => {
-    if (participants.length === 0) { setError("Add at least one participant"); return }
     setSaving(true)
     setError("")
     try {
@@ -81,16 +43,26 @@ export default function NewEventPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventName: eventName.trim(),
-          templateId: templateId || undefined,
           eventDate: eventDate || undefined,
           expiryDate: expiryDate || undefined,
           description: description.trim() || undefined,
           skills: skillsRaw.split(",").map(s => s.trim()).filter(Boolean),
-          participants,
+          hasBadge,
+          template: {
+            ...templateLayout,
+            imageUrl: templateImageUrl,
+          },
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
+
+      if (hasBadge && badgeFile) {
+        const fd = new FormData()
+        fd.append("file", badgeFile)
+        await fetch(`/api/events/${data.eventCode}/badge-upload`, { method: "POST", body: fd })
+      }
+
       router.push(`/dashboard/events/${data.eventCode}`)
       router.refresh()
     } catch (err) {
@@ -98,8 +70,6 @@ export default function NewEventPage() {
       setSaving(false)
     }
   }
-
-  const canGoNext = step === 1 ? !!eventName.trim() : participants.length > 0
 
   return (
     <div className="flex flex-col flex-1">
@@ -110,7 +80,6 @@ export default function NewEventPage() {
           <p className="text-xs" style={{ color: "var(--ct-text-3)" }}>Step {step} of 2</p>
         </div>
 
-        {/* Step indicator */}
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {([1, 2] as Step[]).map(s => (
             <div key={s} style={{
@@ -122,7 +91,7 @@ export default function NewEventPage() {
         </div>
       </header>
 
-      <div className="flex-1 p-8 overflow-auto" style={{ maxWidth: 680 }}>
+      <div className="flex-1 overflow-auto" style={{ padding: step === 2 ? "32px" : "32px", maxWidth: step === 2 ? "none" : 680 }}>
 
         {error && (
           <div style={{
@@ -141,24 +110,6 @@ export default function NewEventPage() {
               <input value={eventName} onChange={e => setEventName(e.target.value)}
                 placeholder="e.g. Web Development Workshop 2025"
                 style={inputStyle} />
-            </Field>
-
-            <Field label="Template">
-              <select value={templateId} onChange={e => setTemplateId(e.target.value)}
-                style={{ ...inputStyle, cursor: "pointer" }}>
-                <option value="">— Use procedural (no template) —</option>
-                {templates.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-              {templates.length === 0 && (
-                <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginTop: 5 }}>
-                  No templates yet.{" "}
-                  <a href="/dashboard/templates/new" style={{ color: "var(--ct-blue)" }}>
-                    Create one
-                  </a>
-                </p>
-              )}
             </Field>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -183,91 +134,88 @@ export default function NewEventPage() {
                 placeholder="React, TypeScript, Node.js"
                 style={inputStyle} />
             </Field>
+
+            <div style={{
+              background: hasBadge ? "var(--ct-blue-dim)" : "var(--ct-surface-2)",
+              border: `1px solid ${hasBadge ? "rgba(37,99,235,0.25)" : "var(--ct-border)"}`,
+              borderRadius: 10, overflow: "hidden",
+              transition: "background 150ms, border-color 150ms",
+            }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", cursor: "pointer" }}>
+                <input type="checkbox" checked={hasBadge} onChange={e => setHasBadge(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: "#2563EB", width: 16, height: 16, flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--ct-text)", marginBottom: 2 }}>
+                    Issue Digital Badge
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--ct-text-2)" }}>
+                    Upload your badge image — shown on each participant&apos;s certificate page.
+                  </p>
+                </div>
+              </label>
+
+              {hasBadge && (
+                <div style={{
+                  borderTop: "1px solid rgba(37,99,235,0.15)",
+                  padding: "14px 16px",
+                  display: "flex", alignItems: "center", gap: 16,
+                }}>
+                  {badgePreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={badgePreview} alt="badge preview"
+                      style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(37,99,235,0.30)" }} />
+                  ) : (
+                    <div style={{
+                      width: 72, height: 72, borderRadius: "50%",
+                      background: "rgba(37,99,235,0.08)", border: "2px dashed rgba(37,99,235,0.25)",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+                    }}>
+                      🎖
+                    </div>
+                  )}
+                  <div>
+                    <label style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      height: 34, padding: "0 14px",
+                      background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
+                      borderRadius: 7, fontSize: 12, color: "var(--ct-text-2)", cursor: "pointer",
+                    }}>
+                      <Upload size={13} />
+                      {badgeFile ? "Change badge" : "Upload badge image"}
+                      <input type="file" accept="image/png,image/jpeg,image/webp"
+                        style={{ display: "none" }}
+                        onChange={e => {
+                          const f = e.target.files?.[0]
+                          if (!f) return
+                          setBadgeFile(f)
+                          setBadgePreview(URL.createObjectURL(f))
+                        }} />
+                    </label>
+                    {badgeFile && (
+                      <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginTop: 5 }}>{badgeFile.name}</p>
+                    )}
+                    <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginTop: badgeFile ? 0 : 5 }}>
+                      PNG, JPEG or WebP · max 5 MB
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* ── Step 2: Participants ────────────────────────────────────── */}
+        {/* ── Step 2: Certificate design ─────────────────────────────── */}
         {step === 2 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div>
-              <p style={{ fontSize: 13, color: "var(--ct-text-2)", marginBottom: 8 }}>
-                Paste participants as CSV — one per line: <code style={{ fontSize: 12 }}>Name, email</code>
-              </p>
-              <textarea
-                value={csvText}
-                onChange={e => setCsvText(e.target.value)}
-                rows={8}
-                placeholder={"Ahmad Fadzil, ahmad@example.com\nNur Aisha, nuraisha@example.com\nRaj Kumar, raj@example.com"}
-                spellCheck={false}
-                style={{
-                  width: "100%", fontFamily: "monospace", fontSize: 12,
-                  background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
-                  borderRadius: 8, padding: "10px 12px", color: "var(--ct-text)",
-                  resize: "vertical", outline: "none",
-                }}
-              />
-              {parseError && (
-                <p style={{ fontSize: 12, color: "var(--ct-error)", marginTop: 6 }}>{parseError}</p>
-              )}
-              <button onClick={parseCsv} style={{
-                marginTop: 8, height: 34, padding: "0 14px",
-                background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
-                borderRadius: 7, fontSize: 13, color: "var(--ct-text-2)", cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 6,
-              }}>
-                <Upload size={13} /> Parse CSV
-              </button>
-            </div>
-
-            {participants.length > 0 && (
-              <div>
-                <p style={{ fontSize: 12, color: "var(--ct-text-2)", marginBottom: 8, fontWeight: 600 }}>
-                  {participants.length} participant{participants.length !== 1 ? "s" : ""} ready
-                </p>
-                <div style={{
-                  background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
-                  borderRadius: 8, overflow: "hidden",
-                }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
-                        {["#", "Name", "Email", ""].map(h => (
-                          <th key={h} style={{
-                            padding: "8px 12px", textAlign: "left",
-                            fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
-                            textTransform: "uppercase", color: "var(--ct-text-3)",
-                          }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {participants.slice(0, 50).map((p, i) => (
-                        <tr key={i} style={{ borderBottom: "1px solid var(--ct-border)" }}>
-                          <td style={{ padding: "8px 12px", fontSize: 11, color: "var(--ct-text-3)", width: 36 }}>{i + 1}</td>
-                          <td style={{ padding: "8px 12px", fontSize: 13, color: "var(--ct-text)" }}>{p.name}</td>
-                          <td style={{ padding: "8px 12px", fontSize: 12, color: "var(--ct-text-2)" }}>{p.email}</td>
-                          <td style={{ padding: "8px 12px", width: 32 }}>
-                            <button onClick={() => removeParticipant(i)} style={{
-                              background: "none", border: "none", cursor: "pointer", padding: 0,
-                              color: "var(--ct-text-3)",
-                            }}>
-                              <Trash2 size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {participants.length > 50 && (
-                    <p style={{ padding: "8px 12px", fontSize: 12, color: "var(--ct-text-3)" }}>
-                      + {participants.length - 50} more
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+          <div>
+            <p style={{ fontSize: 13, color: "var(--ct-text-2)", marginBottom: 20 }}>
+              Design the certificate layout. Drag the name and QR elements to position them.
+              Add custom text placeholders for dates, location, or any other fields.
+            </p>
+            <TemplateEditor
+              initial={templateLayout}
+              initialImageUrl={templateImageUrl ?? undefined}
+              onChange={handleDesignChange}
+            />
           </div>
         )}
 
@@ -281,14 +229,16 @@ export default function NewEventPage() {
             <div />
           )}
           {step < 2 ? (
-            <button onClick={() => setStep(s => (s + 1) as Step)} disabled={!canGoNext} style={{
-              ...btnPrimary, opacity: canGoNext ? 1 : 0.4,
-            }}>
+            <button
+              onClick={() => setStep(s => (s + 1) as Step)}
+              disabled={!eventName.trim()}
+              style={{ ...btnPrimary, opacity: eventName.trim() ? 1 : 0.4 }}
+            >
               Next <ChevronRight size={15} />
             </button>
           ) : (
-            <button onClick={handleCreate} disabled={saving || participants.length === 0} style={{
-              ...btnPrimary, opacity: saving || participants.length === 0 ? 0.6 : 1,
+            <button onClick={handleCreate} disabled={saving} style={{
+              ...btnPrimary, opacity: saving ? 0.6 : 1,
             }}>
               {saving
                 ? <><Loader2 size={14} className="animate-spin" /> Creating…</>
