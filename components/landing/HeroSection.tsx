@@ -27,7 +27,7 @@ const HeroSection: React.FC = () => {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.07 }}
-          className="text-[clamp(2.8rem,8vw,6rem)] font-bold tracking-tight leading-[1.05] text-white mb-8"
+          className="text-[clamp(2.8rem,8vw,5.7rem)] font-bold tracking-tight leading-[1.05] text-white mb-8"
         >
           The professional way to
           <br />
