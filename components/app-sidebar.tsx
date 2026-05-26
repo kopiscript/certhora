@@ -7,16 +7,18 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
+  CreditCard,
   Settings,
   LogOut,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 const NAV = [
-  { label: "Dashboard",    href: "/dashboard",               icon: LayoutDashboard },
-  { label: "Events",       href: "/dashboard/events",        icon: CalendarDays },
-  { label: "Participants", href: "/dashboard/participants",  icon: Users },
-  { label: "Config",       href: "/config",                  icon: Settings },
+  { label: "Dashboard",    href: "/dashboard",              icon: LayoutDashboard },
+  { label: "Events",       href: "/dashboard/events",       icon: CalendarDays },
+  { label: "Participants", href: "/dashboard/participants", icon: Users },
+  { label: "Billing",   href: "/dashboard/billing",   icon: CreditCard },
+  { label: "Settings",  href: "/dashboard/settings",  icon: Settings },
 ]
 
 interface AppSidebarProps {
