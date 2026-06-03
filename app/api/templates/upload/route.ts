@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { writeFile, mkdir } from "fs/promises"
-import path from "path"
+import { uploadToR2 } from "@/lib/r2"
 
-const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
+const MAX_BYTES = 5 * 1024 * 1024
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"])
 
 export async function POST(req: Request) {
@@ -27,15 +26,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "File must be under 5 MB" }, { status: 400 })
   }
 
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
-
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg"
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "templates")
+  const buffer = Buffer.from(await file.arrayBuffer())
 
-  await mkdir(uploadDir, { recursive: true })
-  await writeFile(path.join(uploadDir, filename), buffer)
+  const url = await uploadToR2(`templates/${filename}`, buffer, file.type)
 
-  return NextResponse.json({ url: `/uploads/templates/${filename}` }, { status: 201 })
+  return NextResponse.json({ url }, { status: 201 })
 }

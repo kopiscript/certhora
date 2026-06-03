@@ -207,6 +207,7 @@ model Certificate {
   shareCount       Int         @default(0)
   viewCount        Int         @default(0)
   emailStatus      EmailStatus @default(PENDING)
+  imageUrl         String?
   metadata         Json?
   queuedAt         DateTime?
   sendAttempts     Int         @default(0)

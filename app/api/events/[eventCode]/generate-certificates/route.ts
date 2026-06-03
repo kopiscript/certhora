@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { uploadToR2 } from "@/lib/r2"
 import {
   generateCertificateBatch,
   buildProceduralTemplate,
@@ -143,13 +144,20 @@ export async function POST(
     )
   }
 
-  // ── Persist — update status to QUEUED ────────────────────────────────────
-  // TODO: upload output.imageBuffer to R2 and store imageUrl on Certificate
-  await prisma.$transaction(
+  // ── Upload certificate images to R2 ──────────────────────────────────────
+  const uploadedAt = new Date()
+  const imageUrls = await Promise.all(
     outputs.map(o =>
+      uploadToR2(`certificates/${o.certId}.png`, o.imageBuffer, "image/png")
+    )
+  )
+
+  // ── Persist — update status to QUEUED ────────────────────────────────────
+  await prisma.$transaction(
+    outputs.map((o, i) =>
       prisma.certificate.update({
         where: { certId: o.certId },
-        data: { emailStatus: "QUEUED", queuedAt: new Date() },
+        data: { emailStatus: "QUEUED", queuedAt: uploadedAt, imageUrl: imageUrls[i] },
       })
     )
   )

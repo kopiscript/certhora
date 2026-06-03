@@ -2,8 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { writeFile, mkdir } from "fs/promises"
-import path from "path"
+import { uploadToR2 } from "@/lib/r2"
 
 const MAX_BYTES = 5 * 1024 * 1024
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"])
@@ -44,12 +43,9 @@ export async function POST(
 
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg"
   const filename = `${eventCode}-${Date.now()}.${ext}`
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "badges")
+  const buffer = Buffer.from(await file.arrayBuffer())
 
-  await mkdir(uploadDir, { recursive: true })
-  await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()))
-
-  const badgeUrl = `/uploads/badges/${filename}`
+  const badgeUrl = await uploadToR2(`badges/${filename}`, buffer, file.type)
 
   await prisma.event.update({
     where: { eventCode },

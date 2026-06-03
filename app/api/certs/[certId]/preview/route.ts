@@ -40,6 +40,11 @@ export async function GET(_req: Request, { params }: Props) {
   })
   if (!cert) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  // Serve pre-generated image from R2 if available
+  if (cert.imageUrl) {
+    return NextResponse.redirect(cert.imageUrl, { status: 302 })
+  }
+
   const tpl = cert.event.template
   const fmt = (d: Date | null) =>
     d ? new Intl.DateTimeFormat("en-MY", { day: "numeric", month: "long", year: "numeric" }).format(d) : "—"
