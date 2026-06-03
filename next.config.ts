@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['@prisma/client', 'bcryptjs', '@aws-sdk/client-s3'],
+  serverExternalPackages: ['next-auth', '@prisma/client', 'bcryptjs', '@aws-sdk/client-s3'],
 };
 
 export default nextConfig;
