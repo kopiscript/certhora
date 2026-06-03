@@ -78,7 +78,7 @@ export default async function EventsPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {events.map(ev => {
+            {events.map((ev: typeof events[number]) => {
               const badge = STATUS_BADGE[ev.status] ?? STATUS_BADGE.DRAFT
               return (
                 <Link key={ev.eventCode} href={`/dashboard/events/${ev.eventCode}`}
