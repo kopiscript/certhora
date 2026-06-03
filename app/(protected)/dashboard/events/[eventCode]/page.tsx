@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth"
 import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
-import { ArrowLeft, CalendarDays, LayoutTemplate, Users } from "lucide-react"
+import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
 import { BadgeUpload } from "./BadgeUpload"
 import { EditDesign } from "./EditDesign"
@@ -56,6 +56,14 @@ export default async function EventDetailPage({ params }: Props) {
   const pendingCount = event.certificates.filter(c => c.emailStatus === "PENDING").length
   const sentCount = event.certificates.filter(c => c.emailStatus === "SENT").length
   const queuedCount = event.certificates.filter(c => c.emailStatus === "QUEUED").length
+
+  const feedback = await prisma.eventFeedback.findMany({
+    where: { eventCode },
+    orderBy: { createdAt: "desc" },
+  })
+  const avgScore = feedback.length
+    ? feedback.reduce((s, f) => s + f.npsScore, 0) / feedback.length
+    : 0
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   const usedThisMonth = await prisma.certificate.count({
@@ -123,6 +131,12 @@ export default async function EventDetailPage({ params }: Props) {
             label="Digital Badge"
             value={event.hasBadge ? "Enabled" : "Disabled"}
             sub={event.hasBadge ? "Badge shown on cert page" : undefined}
+          />
+          <InfoCard
+            icon={<Star size={14} />}
+            label="Feedback"
+            value={feedback.length > 0 ? `${avgScore.toFixed(1)} / 5` : "No feedback yet"}
+            sub={feedback.length > 0 ? `${feedback.length} response${feedback.length > 1 ? "s" : ""}` : undefined}
           />
         </div>
 
@@ -228,6 +242,97 @@ export default async function EventDetailPage({ params }: Props) {
             </table>
           </div>
         </div>
+        {/* ── Feedback ────────────────────────────────────────────────── */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <p style={{
+              fontSize: 11, fontWeight: 600, letterSpacing: "0.06em",
+              textTransform: "uppercase", color: "var(--ct-text-2)", margin: 0,
+            }}>
+              Participant Feedback
+            </p>
+            {feedback.length > 0 && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, fontWeight: 600,
+                background: "rgba(251,191,36,0.10)",
+                border: "1px solid rgba(251,191,36,0.22)",
+                color: "#FBBF24",
+                borderRadius: 5, padding: "2px 8px",
+              }}>
+                <Star size={10} fill="#FBBF24" />
+                {avgScore.toFixed(1)}
+              </span>
+            )}
+          </div>
+
+          {feedback.length === 0 ? (
+            <div style={{
+              background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
+              borderRadius: 10, padding: "28px 20px",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+            }}>
+              <MessageSquare size={22} style={{ color: "var(--ct-text-3)" }} />
+              <p style={{ fontSize: 13, color: "var(--ct-text-3)", margin: 0 }}>
+                No feedback yet — responses will appear here once participants rate the event.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {feedback.map(f => (
+                <div key={f.id} style={{
+                  background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
+                  borderRadius: 10, padding: "14px 16px",
+                  display: "flex", gap: 14, alignItems: "flex-start",
+                }}>
+                  {/* Score badge */}
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 9, flexShrink: 0,
+                    background: "rgba(251,191,36,0.09)",
+                    border: "1px solid rgba(251,191,36,0.18)",
+                    display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center",
+                    gap: 1,
+                  }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: "#FBBF24", lineHeight: 1 }}>
+                      {f.npsScore}
+                    </span>
+                    <span style={{ fontSize: 9, color: "rgba(251,191,36,0.55)", fontWeight: 600 }}>/ 5</span>
+                  </div>
+
+                  {/* Stars + comment */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: 2, marginBottom: f.comment ? 6 : 0 }}>
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <Star
+                          key={i}
+                          size={13}
+                          fill={i <= f.npsScore ? "#FBBF24" : "none"}
+                          strokeWidth={1.8}
+                          style={{ color: i <= f.npsScore ? "#FBBF24" : "rgba(255,255,255,0.15)" }}
+                        />
+                      ))}
+                    </div>
+                    {f.comment && (
+                      <p style={{
+                        fontSize: 13, color: "var(--ct-text-2)",
+                        lineHeight: 1.6, margin: 0,
+                      }}>
+                        {f.comment}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Date */}
+                  <span style={{ fontSize: 11, color: "var(--ct-text-3)", flexShrink: 0, paddingTop: 2 }}>
+                    {new Intl.DateTimeFormat("en-MY", { day: "numeric", month: "short" }).format(f.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )
