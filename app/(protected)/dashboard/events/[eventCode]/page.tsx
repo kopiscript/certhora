@@ -53,9 +53,9 @@ export default async function EventDetailPage({ params }: Props) {
     d ? new Intl.DateTimeFormat("en-MY", { day: "numeric", month: "short", year: "numeric" }).format(d) : "—"
 
   const badge = STATUS_BADGE[event.status] ?? STATUS_BADGE.DRAFT
-  const pendingCount = event.certificates.filter(c => c.emailStatus === "PENDING").length
-  const sentCount = event.certificates.filter(c => c.emailStatus === "SENT").length
-  const queuedCount = event.certificates.filter(c => c.emailStatus === "QUEUED").length
+  const pendingCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "PENDING").length
+  const sentCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "SENT").length
+  const queuedCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "QUEUED").length
 
   const feedback = await prisma.eventFeedback.findMany({
     where: { eventCode },
@@ -210,7 +210,7 @@ export default async function EventDetailPage({ params }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {event.certificates.map(c => (
+                {event.certificates.map((c: typeof event.certificates[number]) => (
                   <tr key={c.certId} style={{ borderBottom: "1px solid var(--ct-border)" }}>
                     <td style={{ padding: "10px 14px" }}>
                       <Link href={`/certs/view/${c.certId}`} target="_blank"

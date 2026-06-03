@@ -35,7 +35,7 @@ export default async function ParticipantsPage() {
     }),
   ])
 
-  const certRows: CertRow[] = certs.map(c => ({
+  const certRows: CertRow[] = certs.map((c: typeof certs[number]) => ({
     certId: c.certId,
     participantName: c.participantName,
     participantEmail: c.participantEmail,
@@ -44,7 +44,7 @@ export default async function ParticipantsPage() {
     createdAt: c.createdAt.toISOString(),
   }))
 
-  const eventOptions: EventOption[] = events.map(e => ({
+  const eventOptions: EventOption[] = events.map((e: typeof events[number]) => ({
     eventCode: e.eventCode,
     eventName: e.eventName,
   }))
