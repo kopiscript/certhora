@@ -56,7 +56,7 @@ export default async function BillingPage() {
     orgName: organizer.orgName,
   }
 
-  const txns: Transaction[] = transactions.map(t => ({
+  const txns: Transaction[] = transactions.map((t: typeof transactions[number]) => ({
     id: t.id,
     billcode: t.billcode,
     amount: t.amount.toString(),
