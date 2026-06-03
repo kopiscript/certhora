@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { redirect, notFound } from "next/navigation"
@@ -62,7 +64,7 @@ export default async function EventDetailPage({ params }: Props) {
     orderBy: { createdAt: "desc" },
   })
   const avgScore = feedback.length
-    ? feedback.reduce((s, f) => s + f.npsScore, 0) / feedback.length
+    ? feedback.reduce((s: number, f: typeof feedback[number]) => s + f.npsScore, 0) / feedback.length
     : 0
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -279,7 +281,7 @@ export default async function EventDetailPage({ params }: Props) {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {feedback.map(f => (
+              {feedback.map((f: typeof feedback[number]) => (
                 <div key={f.id} style={{
                   background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
                   borderRadius: 10, padding: "14px 16px",
