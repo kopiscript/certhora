@@ -10,7 +10,8 @@ function createPrismaClient() {
   const connectionString = process.env["DATABASE_URL"];
   if (!connectionString) throw new Error("[prisma] DATABASE_URL is not set");
   // PrismaNeonHttp takes the URL directly and calls neon() internally
-  const adapter = new PrismaNeonHttp(connectionString);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adapter = new PrismaNeonHttp(connectionString, {} as any);
   return new PrismaClient({ adapter });
 }
 
