@@ -6,8 +6,10 @@ export async function proxy(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
   const { pathname } = req.nextUrl
 
-  if (token && (pathname === "/login" || pathname === "/signup")) {
-    return NextResponse.redirect(new URL("/dashboard", req.url))
+  // Already on auth pages — let through (prevents login→login loop)
+  if (pathname === "/login" || pathname === "/signup") {
+    if (token) return NextResponse.redirect(new URL("/dashboard", req.url))
+    return NextResponse.next()
   }
 
   if (pathname.startsWith("/admin") && token?.userType !== "ADMIN") {
