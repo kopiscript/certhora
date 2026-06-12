@@ -58,6 +58,9 @@ interface Props {
 }
 
 type DragTarget = { kind: "name" | "qr" } | { kind: "additional"; id: string } | null
+type Guide = { axis: "h" | "v"; pos: number }
+
+const SNAP = 10 // snap threshold in physical px
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -68,9 +71,13 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
   const [uploading, setUploading] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  const [guides, setGuides] = useState<Guide[]>([])
+
   const containerRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ target: DragTarget; ox: number; oy: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const layoutRef = useRef(layout)
+  useEffect(() => { layoutRef.current = layout }, [layout])
 
   useEffect(() => {
     onChange(layout, imageUrl)
@@ -143,13 +150,54 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
       const { target, ox, oy } = dragRef.current
-      const cx = Math.max(0, Math.min((mx - ox) / SCALE, CERT_W))
-      const cy = Math.max(0, Math.min((my - oy) / SCALE, CERT_H))
+      let cx = Math.max(0, Math.min((mx - ox) / SCALE, CERT_W))
+      let cy = Math.max(0, Math.min((my - oy) / SCALE, CERT_H))
+
+      const newGuides: Guide[] = []
+      const lyt = layoutRef.current
+
+      // Snap point pools — canvas center + other elements' centers
+      const snapXPts: number[] = [CERT_W / 2]
+      const snapYPts: number[] = [CERT_H / 2]
+      if (target?.kind !== "name") {
+        snapXPts.push(lyt.nameCenterX)
+        snapYPts.push(lyt.nameY)
+      }
+      if (target?.kind !== "qr") {
+        snapXPts.push(lyt.qrX + lyt.qrSize / 2)
+        snapYPts.push(lyt.qrY + lyt.qrSize / 2)
+      }
+      for (const p of lyt.additional) {
+        if (target?.kind !== "additional" || (target as { kind: "additional"; id: string }).id !== p.id) {
+          snapXPts.push(p.x)
+          snapYPts.push(p.y)
+        }
+      }
+
+      const snapV = (val: number): number => {
+        for (const sp of snapXPts) {
+          if (Math.abs(val - sp) < SNAP) { newGuides.push({ axis: "v", pos: sp }); return sp }
+        }
+        return val
+      }
+      const snapH = (val: number): number => {
+        for (const sp of snapYPts) {
+          if (Math.abs(val - sp) < SNAP) { newGuides.push({ axis: "h", pos: sp }); return sp }
+        }
+        return val
+      }
+
       if (target?.kind === "name") {
+        cx = snapV(cx); cy = snapH(cy)
         setLayout(p => ({ ...p, nameCenterX: Math.round(cx), nameY: Math.round(cy) }))
       } else if (target?.kind === "qr") {
+        const snappedCx = snapV(cx + lyt.qrSize / 2)
+        const snappedCy = snapH(cy + lyt.qrSize / 2)
+        cx = Math.max(0, Math.min(snappedCx - lyt.qrSize / 2, CERT_W))
+        cy = Math.max(0, Math.min(snappedCy - lyt.qrSize / 2, CERT_H))
         setLayout(p => ({ ...p, qrX: Math.round(cx), qrY: Math.round(cy) }))
       } else if (target?.kind === "additional") {
+        cx = snapV(cx); cy = snapH(cy)
         setLayout(p => ({
           ...p,
           additional: p.additional.map(a =>
@@ -159,8 +207,9 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
           ),
         }))
       }
+      setGuides(newGuides)
     }
-    const up = () => { dragRef.current = null }
+    const up = () => { dragRef.current = null; setGuides([]) }
     window.addEventListener("mousemove", move)
     window.addEventListener("mouseup", up)
     return () => {
@@ -330,6 +379,22 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
               QR
             </div>
           </div>
+
+          {/* ── Snap alignment guides ────────────────────────────────── */}
+          {guides.map((g, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                pointerEvents: "none",
+                zIndex: 20,
+                ...(g.axis === "v"
+                  ? { left: g.pos * SCALE, top: 0, width: 1, height: "100%", background: "rgba(239,68,68,0.85)" }
+                  : { left: 0, top: g.pos * SCALE, width: "100%", height: 1, background: "rgba(239,68,68,0.85)" }
+                ),
+              }}
+            />
+          ))}
 
           {/* ── Additional placeholders ───────────────────────────────── */}
           {layout.additional.map(p => (
