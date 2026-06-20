@@ -1,16 +1,12 @@
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import { AppSidebar } from "@/components/app-sidebar"
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions)
+  const session = await getCurrentSession()
   if (!session) redirect("/login")
 
-  const organizer = await prisma.organizer.findUnique({
-    where: { userId: session.user.id },
-  })
+  const organizer = await getCurrentOrganizer(session.user.id)
 
   return (
     <div className="flex min-h-screen bg-background">

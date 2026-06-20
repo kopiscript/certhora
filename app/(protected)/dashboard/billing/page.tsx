@@ -1,27 +1,16 @@
 export const dynamic = "force-dynamic"
 
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { getCurrentSession, getCurrentOrganizer } from '@/lib/session'
 import { BillingClient } from './BillingClient'
 import type { OrgInfo, Transaction, TierKey } from './BillingClient'
 
 export default async function BillingPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getCurrentSession()
   if (!session) redirect('/login')
 
-  const organizer = await prisma.organizer.findUnique({
-    where: { userId: session.user.id },
-    select: {
-      organizerCd: true,
-      orgName: true,
-      tier: true,
-      certQuota: true,
-      expiryDate: true,
-      subscribeDate: true,
-    },
-  })
+  const organizer = await getCurrentOrganizer(session.user.id)
   if (!organizer) redirect('/login')
 
   const now = new Date()

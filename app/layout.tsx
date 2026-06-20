@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Certhora",
   description: "Professional digital certificates for event organizers",
+  icons: {
+    icon: "/certhoralogo.svg",
+    shortcut: "/certhoralogo.svg",
+    apple: "/certhoralogo.svg",
+  },
 };
 
 export default function RootLayout({

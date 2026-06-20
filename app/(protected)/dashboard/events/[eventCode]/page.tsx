@@ -1,9 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import Link from "next/link"
 import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
@@ -24,31 +23,39 @@ const EMAIL_STATUS_COLORS: Record<string, string> = {
 }
 
 export default async function EventDetailPage({ params }: Props) {
-  const session = await getServerSession(authOptions)
+  const session = await getCurrentSession()
   if (!session) redirect("/login")
 
   const { eventCode } = await params
 
-  const organizer = await prisma.organizer.findUnique({
-    where: { userId: session.user.id },
-    select: { organizerCd: true, certQuota: true },
-  })
+  const organizer = await getCurrentOrganizer(session.user.id)
   if (!organizer) redirect("/login")
 
-  const event = await prisma.event.findUnique({
-    where: { eventCode },
-    include: {
-      template: true,   // 1-to-1 by eventCode
-      certificates: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          certId: true, participantName: true, participantEmail: true,
-          emailStatus: true, createdAt: true, viewCount: true,
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+
+  const [event, feedback, usedThisMonth] = await Promise.all([
+    prisma.event.findUnique({
+      where: { eventCode },
+      include: {
+        template: true,   // 1-to-1 by eventCode
+        certificates: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            certId: true, participantName: true, participantEmail: true,
+            emailStatus: true, createdAt: true, viewCount: true,
+          },
         },
+        _count: { select: { certificates: true } },
       },
-      _count: { select: { certificates: true } },
-    },
-  })
+    }),
+    prisma.eventFeedback.findMany({
+      where: { eventCode },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.certificate.count({
+      where: { event: { organizerCd: organizer.organizerCd }, createdAt: { gte: monthStart }, emailStatus: { not: "PENDING" } },
+    }),
+  ])
   if (!event || event.organizerCd !== organizer.organizerCd) notFound()
 
   const fmt = (d: Date | null) =>
@@ -59,18 +66,10 @@ export default async function EventDetailPage({ params }: Props) {
   const sentCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "SENT").length
   const queuedCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "QUEUED").length
 
-  const feedback = await prisma.eventFeedback.findMany({
-    where: { eventCode },
-    orderBy: { createdAt: "desc" },
-  })
   const avgScore = feedback.length
     ? feedback.reduce((s: number, f: typeof feedback[number]) => s + f.npsScore, 0) / feedback.length
     : 0
 
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  const usedThisMonth = await prisma.certificate.count({
-    where: { event: { organizerCd: organizer.organizerCd }, createdAt: { gte: monthStart }, emailStatus: { not: "PENDING" } },
-  })
   const quotaRemaining = organizer.certQuota - usedThisMonth
 
   return (

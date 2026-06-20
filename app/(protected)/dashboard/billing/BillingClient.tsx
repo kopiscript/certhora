@@ -2,105 +2,20 @@
 
 import { useState } from 'react'
 import {
-  CreditCard, Calendar, Zap, ChevronRight, Check,
-  X, Download, Receipt, ExternalLink, TrendingUp, Crown,
-  Sparkles, Building2, Gift,
+  CreditCard, Calendar, ChevronRight, Check,
+  X, Download, Receipt, TrendingUp, Crown,
 } from 'lucide-react'
+import { TIERS, type Tier, type TierKey } from '@/lib/tiers'
 
-// ─── Pricing config ───────────────────────────────────────────────────────────
-// Adjust these values to update pricing across the entire page.
+export { TIERS }
+export type { TierKey }
 
-export const TIERS = [
-  {
-    key: 'FREE' as const,
-    name: 'Free',
-    price: null as null | number,
-    priceLabel: 'RM 0',
-    priceSub: 'forever',
-    quota: 30,
-    icon: Gift,
-    color: '#64748B',
-    dimColor: 'rgba(100,116,139,0.12)',
-    borderColor: 'rgba(100,116,139,0.25)',
-    features: [
-      '30 certificates / month',
-      'Standard certificate template',
-      'Publicly verifiable links',
-      'QR code on certificate',
-      'Email delivery',
-    ],
-    cta: 'Downgrade',
-  },
-  {
-    key: 'STARTER' as const,
-    name: 'Starter',
-    price: 29.99,
-    priceLabel: 'RM 29.99',
-    priceSub: '/ month',
-    quota: 300,
-    icon: Zap,
-    color: '#3B82F6',
-    dimColor: 'rgba(59,130,246,0.10)',
-    borderColor: 'rgba(59,130,246,0.28)',
-    badge: 'Most Popular',
-    features: [
-      '300 certificates / month',
-      'Custom certificate background',
-      'Bulk / batch generation',
-      'Participant CSV import',
-      'Analytics dashboard',
-      'Priority email support',
-    ],
-    cta: 'Upgrade',
-  },
-  {
-    key: 'PRO' as const,
-    name: 'Pro',
-    price: 79.99,
-    priceLabel: 'RM 79.99',
-    priceSub: '/ month',
-    quota: 1000,
-    icon: Sparkles,
-    color: '#8B5CF6',
-    dimColor: 'rgba(139,92,246,0.10)',
-    borderColor: 'rgba(139,92,246,0.28)',
-    badge: 'Best Value',
-    features: [
-      '1 000 certificates / month',
-      'White-label (remove branding)',
-      'Custom domain support',
-      'Webhook event notifications',
-      '3 team seats',
-      'Advanced analytics & exports',
-      'Dedicated account manager',
-    ],
-    cta: 'Upgrade',
-  },
-  {
-    key: 'ENTERPRISE' as const,
-    name: 'Enterprise',
-    price: null as null | number,
-    priceLabel: 'Custom',
-    priceSub: 'contact us',
-    quota: Infinity,
-    icon: Building2,
-    color: '#F59E0B',
-    dimColor: 'rgba(245,158,11,0.10)',
-    borderColor: 'rgba(245,158,11,0.28)',
-    features: [
-      'Unlimited certificates',
-      'Custom SLA & uptime guarantee',
-      'SSO / SAML integration',
-      'Custom API access',
-      'Unlimited team seats',
-      'Dedicated onboarding',
-      'Priority 24 / 7 support',
-    ],
-    cta: 'Contact Sales',
-  },
-] as const
-
-export type TierKey = typeof TIERS[number]['key']
+function tierCta(target: Tier, current: TierKey) {
+  if (target.key === 'ENTERPRISE') return 'Contact Sales'
+  const currentIndex = TIERS.findIndex(t => t.key === current)
+  const targetIndex = TIERS.findIndex(t => t.key === target.key)
+  return targetIndex > currentIndex ? 'Upgrade' : 'Downgrade'
+}
 
 // ─── Payment status config ────────────────────────────────────────────────────
 
@@ -331,7 +246,7 @@ function PlansModal({ currentTier, onClose }: { currentTier: TierKey; onClose: (
                   fontSize: 12, fontWeight: 600, cursor: isCurrent ? 'default' : 'pointer',
                   opacity: isCurrent ? 0.8 : 1,
                 }}>
-                  {isCurrent ? '✓ Current Plan' : tier.cta}
+                  {isCurrent ? '✓ Current Plan' : tierCta(tier, currentTier)}
                 </button>
               </div>
             )

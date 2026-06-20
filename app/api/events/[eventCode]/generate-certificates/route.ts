@@ -145,11 +145,15 @@ export async function POST(
   }
 
   // ── Upload certificate images to R2 ──────────────────────────────────────
+  // A `v` cache-busting param is appended because the R2 key is stable per
+  // certId — without it, CDN/browser caches would keep serving the
+  // pre-update image after a template layout change.
   const uploadedAt = new Date()
   const imageUrls = await Promise.all(
-    outputs.map(o =>
-      uploadToR2(`certificates/${o.certId}.png`, o.imageBuffer, "image/png")
-    )
+    outputs.map(async o => {
+      const url = await uploadToR2(`certificates/${o.certId}.png`, o.imageBuffer, "image/png")
+      return `${url}?v=${uploadedAt.getTime()}`
+    })
   )
 
   // ── Persist — update status to QUEUED ────────────────────────────────────

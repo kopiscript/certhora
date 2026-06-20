@@ -1,11 +1,10 @@
 export const dynamic = "force-dynamic"
 
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { getCurrentSession } from "@/lib/session"
 
 export default async function ConfigPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getCurrentSession()
 
   if (!session) {
     redirect("/login")

@@ -1,20 +1,16 @@
 export const dynamic = "force-dynamic"
 
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import { CalendarDays, Award, TrendingUp, Zap } from "lucide-react"
 import { QuickActions } from "@/components/quick-actions"
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getCurrentSession()
   if (!session) redirect("/login")
 
-  const organizer = await prisma.organizer.findUnique({
-    where: { userId: session.user.id },
-    include: { _count: { select: { events: true } } },
-  })
+  const organizer = await getCurrentOrganizer(session.user.id)
 
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)

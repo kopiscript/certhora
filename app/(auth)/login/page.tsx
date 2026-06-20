@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -70,9 +71,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-bold text-sm">C</span>
-          </div>
+          <Image src="/certhoralogo.svg" alt="" width={32} height={32} className="h-8 w-8 shrink-0" />
           <span className="text-foreground font-semibold tracking-tight">Certhora</span>
         </div>
 

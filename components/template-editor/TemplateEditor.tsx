@@ -470,8 +470,7 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
         </div>
 
         <p style={{ marginTop: 8, fontSize: 11, color: "var(--ct-text-3)" }}>
-          Name: ({layout.nameCenterX}, {layout.nameY}) · QR: ({layout.qrX}, {layout.qrY})
-          · Canvas: {CERT_W}×{CERT_H}px
+          Drag the name and QR code on the canvas to position them · Canvas: {CERT_W}×{CERT_H}px
         </p>
       </div>
 
@@ -504,33 +503,13 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
                 onChange={v => updateLayout({ nameColor: v })} />
             </Field>
           </TwoCol>
-          <TwoCol>
-            <Field label="Center X">
-              <NumInput value={layout.nameCenterX} min={0} max={CERT_W}
-                onChange={v => updateLayout({ nameCenterX: v })} />
-            </Field>
-            <Field label="Y">
-              <NumInput value={layout.nameY} min={0} max={CERT_H}
-                onChange={v => updateLayout({ nameY: v })} />
-            </Field>
-          </TwoCol>
-          <Field label="Max width (px)">
-            <NumInput value={layout.nameMaxWidth} min={100} max={CERT_W}
-              onChange={v => updateLayout({ nameMaxWidth: v })} />
+          <Field label="Text width (% of certificate)">
+            <NumInput value={Math.round((layout.nameMaxWidth / CERT_W) * 100)} min={10} max={100}
+              onChange={v => updateLayout({ nameMaxWidth: Math.round((v / 100) * CERT_W) })} />
           </Field>
         </Section>
 
         <Section icon={<QrCode size={13} />} label="QR Code">
-          <TwoCol>
-            <Field label="X">
-              <NumInput value={layout.qrX} min={0} max={CERT_W}
-                onChange={v => updateLayout({ qrX: v })} />
-            </Field>
-            <Field label="Y">
-              <NumInput value={layout.qrY} min={0} max={CERT_H}
-                onChange={v => updateLayout({ qrY: v })} />
-            </Field>
-          </TwoCol>
           <Field label="Size (px)">
             <NumInput value={layout.qrSize} min={60} max={300}
               onChange={v => updateLayout({ qrSize: v })} />

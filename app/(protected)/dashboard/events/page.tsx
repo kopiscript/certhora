@@ -1,9 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import Link from "next/link"
 import { Plus, CalendarDays, Users, CheckCircle, Clock, FileText } from "lucide-react"
 
@@ -15,13 +14,10 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
 }
 
 export default async function EventsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getCurrentSession()
   if (!session) redirect("/login")
 
-  const organizer = await prisma.organizer.findUnique({
-    where: { userId: session.user.id },
-    select: { organizerCd: true },
-  })
+  const organizer = await getCurrentOrganizer(session.user.id)
   if (!organizer) redirect("/login")
 
   const events = await prisma.event.findMany({

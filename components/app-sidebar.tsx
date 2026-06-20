@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import {
@@ -37,9 +38,7 @@ export function AppSidebar({ orgName, email, tier }: AppSidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 h-16 border-b shrink-0" style={{ borderColor: "var(--ct-border)" }}>
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <span className="text-primary-foreground font-bold text-xs">C</span>
-        </div>
+        <Image src="/certhoralogo.svg" alt="" width={28} height={28} className="h-7 w-7 shrink-0" />
         <span className="text-foreground font-semibold tracking-tight text-sm">Certhora</span>
       </div>
 

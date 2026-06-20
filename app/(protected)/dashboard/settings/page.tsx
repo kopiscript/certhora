@@ -1,21 +1,17 @@
 export const dynamic = "force-dynamic"
 
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { getCurrentSession, getCurrentOrganizer } from '@/lib/session'
 import { SettingsClient } from './SettingsClient'
 import type { SettingsData } from './SettingsClient'
 
 export default async function SettingsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getCurrentSession()
   if (!session) redirect('/login')
 
   const [organizer, user] = await Promise.all([
-    prisma.organizer.findUnique({
-      where: { userId: session.user.id },
-      select: { organizerCd: true, orgName: true, socialLink: true },
-    }),
+    getCurrentOrganizer(session.user.id),
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { email: true },
