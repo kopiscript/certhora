@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -37,31 +38,49 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const userId = randomUUID();
 
-  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const user = await tx.user.create({
-      data: { email, passwordHash, userType: "ORGANIZER" },
+  // Neon's HTTP driver supports neither interactive nor array/batch
+  // `$transaction` calls (both reject with "Transactions are not supported
+  // in HTTP mode") — so these writes run as sequential statements instead,
+  // with best-effort cleanup if a later step fails.
+  try {
+    await prisma.user.create({
+      data: { id: userId, email, passwordHash, userType: "ORGANIZER" },
     });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return NextResponse.json({ error: "Email already in use", field: "email" }, { status: 409 });
+    }
+    console.error("[register] failed to create user:", err);
+    return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
+  }
 
-    await tx.organizer.create({
+  try {
+    await prisma.organizer.create({
       data: {
         organizerCd,
-        userId: user.id,
+        userId,
         orgName: orgName.trim(),
         socialLink: socialLink ?? null,
         tier: "FREE",
         certQuota: 30,
       },
     });
-
-    await tx.subscription.create({
-      data: {
-        organizerCd,
-        tier: "FREE",
-        certQuota: 30,
-      },
+    await prisma.subscription.create({
+      data: { organizerCd, tier: "FREE", certQuota: 30 },
     });
-  });
+  } catch (err) {
+    await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return NextResponse.json(
+        { error: "Organizer code already taken — try a different one", field: "organizerCd" },
+        { status: 409 }
+      );
+    }
+    console.error("[register] failed to create organizer:", err);
+    return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true }, { status: 201 });
 }

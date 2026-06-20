@@ -108,8 +108,14 @@ export async function POST(req: Request) {
 
   const eventCode = await generateEventCode(organizer.organizerCd)
 
-  const event = await prisma.$transaction(async (tx) => {
-    const ev = await tx.event.create({
+  // Neon's HTTP driver supports neither interactive nor array/batch
+  // `$transaction` calls — these writes run as sequential statements
+  // instead. If a later step fails, the event/template already created
+  // are left in place (organizer can retry adding participants) rather
+  // than silently disappearing.
+  let event
+  try {
+    event = await prisma.event.create({
       data: {
         eventCode,
         eventName: eventName.trim(),
@@ -125,7 +131,7 @@ export async function POST(req: Request) {
     })
 
     // Create template with provided layout or defaults
-    await tx.template.create({
+    await prisma.template.create({
       data: {
         eventCode,
         imageUrl:     template?.imageUrl     ?? null,
@@ -149,7 +155,7 @@ export async function POST(req: Request) {
     // Optionally create participants if provided
     if (Array.isArray(participants) && participants.length > 0) {
       const prefix = organizer.organizerCd.toUpperCase()
-      const existing = await tx.certificate.findMany({
+      const existing = await prisma.certificate.findMany({
         where: { certId: { startsWith: prefix } },
         select: { certId: true },
       })
@@ -168,7 +174,7 @@ export async function POST(req: Request) {
         throw new Error("Could not generate unique cert IDs")
       }
 
-      await tx.certificate.createMany({
+      await prisma.certificate.createMany({
         data: participants.map((p, i) => ({
           certId: certIds[i],
           participantName: p.name.trim(),
@@ -178,9 +184,10 @@ export async function POST(req: Request) {
         })),
       })
     }
-
-    return ev
-  })
+  } catch (err) {
+    console.error("[events] failed to create event:", err)
+    return NextResponse.json({ error: "Failed to create event" }, { status: 500 })
+  }
 
   return NextResponse.json(
     { eventCode: event.eventCode, participantCount: participants?.length ?? 0 },

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useCallback, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, ChevronRight, ChevronLeft, Plus, Upload } from "lucide-react"
 import { TemplateEditor, type TemplateLayout, DEFAULT_LAYOUT } from "@/components/template-editor/TemplateEditor"
 
@@ -9,7 +9,10 @@ type Step = 1 | 2
 
 export default function NewEventPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const duplicateFrom = searchParams.get("duplicateFrom")
   const [step, setStep] = useState<Step>(1)
+  const [loadingDuplicate, setLoadingDuplicate] = useState(!!duplicateFrom)
 
   // ── Step 1 — event details ────────────────────────────────────────────────
   const [eventName, setEventName] = useState("")
@@ -29,6 +32,55 @@ export default function NewEventPage() {
     setTemplateLayout(layout)
     setTemplateImageUrl(imageUrl)
   }, [])
+
+  // ── Prefill from source event when duplicating ────────────────────────────
+  // Only settings/template are copied — participants/certificates are never
+  // carried over, and every field below remains fully editable before saving.
+  useEffect(() => {
+    if (!duplicateFrom) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/events/${duplicateFrom}`)
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        if (cancelled) return
+
+        setEventName(data.eventName ? `${data.eventName} (Copy)` : "")
+        setEventDate(data.eventDate ? data.eventDate.slice(0, 10) : "")
+        setExpiryDate(data.expiryDate ? data.expiryDate.slice(0, 10) : "")
+        setDescription(data.description ?? "")
+        setSkillsRaw(Array.isArray(data.skills) ? data.skills.join(", ") : "")
+        setHasBadge(!!data.hasBadge)
+        if (data.badgeUrl) setBadgePreview(data.badgeUrl)
+
+        if (data.template) {
+          setTemplateLayout({
+            nameCenterX: data.template.nameCenterX,
+            nameY: data.template.nameY,
+            nameMaxWidth: data.template.nameMaxWidth,
+            nameFontSize: data.template.nameFontSize,
+            nameFont: data.template.nameFont,
+            nameColor: data.template.nameColor,
+            qrX: data.template.qrX,
+            qrY: data.template.qrY,
+            qrSize: data.template.qrSize,
+            certIdFont: data.template.certIdFont,
+            certIdColor: data.template.certIdColor,
+            showWatermark: data.template.showWatermark,
+            primaryColor: data.template.primaryColor,
+            additional: data.template.additional ?? [],
+          })
+          setTemplateImageUrl(data.template.imageUrl ?? null)
+        }
+      } catch (err) {
+        if (!cancelled) setError(`Failed to load source event: ${(err as Error).message}`)
+      } finally {
+        if (!cancelled) setLoadingDuplicate(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [duplicateFrom])
 
   // ── Submission ────────────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
@@ -76,8 +128,10 @@ export default function NewEventPage() {
       <header className="h-16 flex items-center justify-between px-8 border-b shrink-0"
         style={{ borderColor: "var(--ct-border)" }}>
         <div>
-          <h1 className="text-sm font-semibold">New Event</h1>
-          <p className="text-xs" style={{ color: "var(--ct-text-3)" }}>Step {step} of 2</p>
+          <h1 className="text-sm font-semibold">{duplicateFrom ? "Duplicate Event" : "New Event"}</h1>
+          <p className="text-xs" style={{ color: "var(--ct-text-3)" }}>
+            {duplicateFrom ? "Settings and design copied — edit anything before saving" : `Step ${step} of 2`}
+          </p>
         </div>
 
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -93,7 +147,13 @@ export default function NewEventPage() {
 
       <div className="flex-1 overflow-auto" style={{ padding: step === 2 ? "32px" : "32px", maxWidth: step === 2 ? "none" : 680 }}>
 
-        {error && (
+        {loadingDuplicate && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "40px 0", color: "var(--ct-text-3)", fontSize: 13 }}>
+            <Loader2 size={14} className="animate-spin" /> Loading source event…
+          </div>
+        )}
+
+        {!loadingDuplicate && error && (
           <div style={{
             marginBottom: 20, padding: "10px 14px",
             background: "var(--ct-error-bg)", border: "1px solid var(--ct-error-border)",
@@ -104,7 +164,7 @@ export default function NewEventPage() {
         )}
 
         {/* ── Step 1: Event details ──────────────────────────────────── */}
-        {step === 1 && (
+        {!loadingDuplicate && step === 1 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <Field label="Event Name *">
               <input value={eventName} onChange={e => setEventName(e.target.value)}
@@ -191,6 +251,11 @@ export default function NewEventPage() {
                           setBadgePreview(URL.createObjectURL(f))
                         }} />
                     </label>
+                    {!badgeFile && badgePreview && duplicateFrom && (
+                      <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginTop: 5 }}>
+                        Copied from source event — upload again to apply it to this event.
+                      </p>
+                    )}
                     {badgeFile && (
                       <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginTop: 5 }}>{badgeFile.name}</p>
                     )}
@@ -205,7 +270,7 @@ export default function NewEventPage() {
         )}
 
         {/* ── Step 2: Certificate design ─────────────────────────────── */}
-        {step === 2 && (
+        {!loadingDuplicate && step === 2 && (
           <div>
             <p style={{ fontSize: 13, color: "var(--ct-text-2)", marginBottom: 20 }}>
               Design the certificate layout. Drag the name and QR elements to position them.
@@ -220,7 +285,7 @@ export default function NewEventPage() {
         )}
 
         {/* ── Navigation ─────────────────────────────────────────────── */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32 }}>
+        {!loadingDuplicate && <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32 }}>
           {step > 1 ? (
             <button onClick={() => setStep(s => (s - 1) as Step)} style={btnSecondary}>
               <ChevronLeft size={15} /> Back
@@ -242,10 +307,10 @@ export default function NewEventPage() {
             }}>
               {saving
                 ? <><Loader2 size={14} className="animate-spin" /> Creating…</>
-                : <><Plus size={14} /> Create Event</>}
+                : <><Plus size={14} /> {duplicateFrom ? "Create Duplicate" : "Create Event"}</>}
             </button>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   )

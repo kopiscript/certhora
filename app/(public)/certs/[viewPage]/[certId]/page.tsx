@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { CheckCircle, AlertTriangle, Clock, Calendar, Building2, BadgeCheck, Hash } from 'lucide-react'
@@ -42,6 +44,13 @@ export default async function CertViewPage({ params }: Props) {
   })
 
   if (!cert) notFound()
+
+  // `viewPage` is a cosmetic URL slug only — `certId` is the actual lookup
+  // key, so it isn't validated separately here.
+  await prisma.certificate.update({
+    where: { certId },
+    data: { viewCount: { increment: 1 } },
+  })
 
   const event = cert.event
   const organizer = event.organizer

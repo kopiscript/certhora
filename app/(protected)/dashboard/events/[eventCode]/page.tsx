@@ -4,7 +4,7 @@ import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import Link from "next/link"
-import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare } from "lucide-react"
+import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare, Copy } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
 import { BadgeUpload } from "./BadgeUpload"
 import { EditDesign } from "./EditDesign"
@@ -103,11 +103,25 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <GenerateButton
-          eventCode={eventCode}
-          pendingCount={pendingCount}
-          quotaRemaining={quotaRemaining}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Link href={`/dashboard/events/new?duplicateFrom=${eventCode}`}>
+            <button style={{
+              display: "flex", alignItems: "center", gap: 7,
+              height: 36, padding: "0 14px",
+              background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
+              color: "var(--ct-text-2)", borderRadius: 8,
+              fontSize: 13, fontWeight: 500, cursor: "pointer",
+            }}>
+              <Copy size={13} />
+              Duplicate
+            </button>
+          </Link>
+          <GenerateButton
+            eventCode={eventCode}
+            pendingCount={pendingCount}
+            quotaRemaining={quotaRemaining}
+          />
+        </div>
       </header>
 
       <div className="flex-1 p-8 overflow-auto" style={{ display: "flex", flexDirection: "column", gap: 20 }}>

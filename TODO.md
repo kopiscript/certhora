@@ -1,9 +1,9 @@
 # Certhora TODO
 
 ## Known Issues to Check
-- [ ] Confirm `/signup` flow creates user + organizer record correctly
-- [ ] Verify certificate generation works end-to-end (R2 upload → public URL)
-- [ ] Test public cert view page (`/certs/[viewPage]/[certId]`) works without auth
+- [x] Confirm `/signup` flow creates user + organizer record correctly — was **completely broken**: `app/api/auth/register/route.ts` used `prisma.$transaction(async tx => ...)`, but Neon's HTTP driver rejects `$transaction` in any form ("Transactions are not supported in HTTP mode"), confirmed by testing directly against the DB. Every signup attempt 500'd. Fixed by replacing with sequential creates + best-effort cleanup on failure. Same bug also found and fixed in `app/api/events/route.ts` (event creation) and the cert-generation DB update (`generate-certificates/route.ts`, switched to `Promise.all`) — **event creation was broken too**.
+- [x] Verify certificate generation works end-to-end (R2 upload → public URL) — image generation/upload/array-ordering all correct; the only bug was the `$transaction` DB-update issue above, now fixed.
+- [x] Test public cert view page (`/certs/[viewPage]/[certId]`) works without auth — confirmed public (no session check), 404s correctly on missing certId. Fixed two gaps: `viewCount` was never incremented anywhere (now increments on view), and the page had no `dynamic = "force-dynamic"` so Next could have statically cached/staled the rendered cert page.
 
 ## Features to Complete
 - [ ] `app/(protected)/dashboard/config/page.tsx` — appears empty/stub
@@ -14,8 +14,8 @@
 - [ ] Admin panel (no `/admin` route found in structure)
 
 ## New Features
-- [ ] Smart auto-center guides when dragging elements (like Canva) — snap-to-center/edge alignment lines appear while dragging on the certificate template editor
-- [ ] Duplicate event — clone an event's settings/template only, not its participants/certificates. User must be able to edit the event details (name, date, etc.) each time before/while duplicating, not just get an identical copy.
+- [x] Smart auto-center guides when dragging elements (like Canva) — already implemented in `TemplateEditor.tsx` (snap points for canvas center + sibling elements, rendered guide lines)
+- [x] Duplicate event — clone an event's settings/template only, not its participants/certificates. Added "Duplicate" buttons on the events list and event detail page, linking to `New Event` with `?duplicateFrom=<eventCode>`; that page now prefetches and prefills the source event/template (fully editable before saving). Badge image isn't carried over automatically (needs re-upload) since the original file isn't accessible client-side — only its preview/flag are copied.
 
 ## Polish
 - [x] Landing page (`/`) — confirm sections render correctly (Header/Hero/Features/Pricing/Testimonials/Footer all render, not a stub)

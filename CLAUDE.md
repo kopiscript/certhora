@@ -25,9 +25,17 @@ npx prisma studio        # open Prisma GUI at localhost:5555
 
 **Database**: Prisma client is a singleton on `globalThis` (see `lib/prisma.ts`), using `PrismaNeonHttp` — every query is an HTTPS round-trip (no persistent connection), so avoid sequential/redundant queries; batch independent queries with `Promise.all`. Schema lives in `prisma/schema.prisma`. Core domain models: `User` (`UserType` enum), `Organizer` (`Tier` enum: FREE/STARTER/PRO/ENTERPRISE), `Subscription`, `Template`, `Event` (`EventStatus`), `Certificate` (`EmailStatus`), `EventFeedback`, `PaymentTransaction` (`PaymentStatus`) — plus NextAuth adapter models `Account`, `Session`, `VerificationToken`. Requires `DATABASE_URL` in `.env`.
 
+**Never use `prisma.$transaction(...)`** — neither the interactive callback form nor the array/batch form. `PrismaNeonHttp` rejects both with `"Transactions are not supported in HTTP mode"` (verified by testing directly against the DB). This previously broke signup (`api/auth/register`) and event creation (`api/events`) silently with 500s. Instead, run writes as sequential `await` statements (with manual best-effort cleanup on failure, since there's no real rollback) or, for independent rows, `Promise.all`.
+
 **Pricing/tiers**: `lib/tiers.ts` is the single source of truth for tier pricing/quota/feature data (`TIERS`, `TierKey`). Used by the `/pricing` page, the landing page's `PricingSection`, and the dashboard `BillingClient`. Update tier data there, not in the components.
 
 **File storage**: `lib/r2.ts` uploads to Cloudflare R2 via `uploadToR2(key, body, contentType, cacheControl?)`. Certificate images reuse a stable key per `certId` (`certificates/{certId}.png`), so the generate-certificates route appends a `?v={timestamp}` cache-busting query param to the stored `imageUrl` on every regeneration — without it, CDN/browser caches keep serving the pre-update image after a template layout change.
+
+**Template editor**: `components/template-editor/TemplateEditor.tsx` lets organizers drag the name/QR/custom-text elements over a 1200×840 canvas (rendered at `DISPLAY_W=720` via `SCALE`). Raw X/Y inputs are intentionally hidden from the UI — position is drag-only. Dragging snaps to canvas-center and to other elements' centers (`SNAP` px threshold) and renders red guide lines while active.
+
+**Duplicate event**: "Duplicate" buttons on the events list and event detail page link to `/dashboard/events/new?duplicateFrom=<eventCode>`. That page fetches `GET /api/events/[eventCode]` and prefills name/dates/description/skills/template into editable state — no participants/certificates are ever copied (the new-event flow doesn't create them by default). The badge image file itself can't be carried over client-side, so only its preview/flag copy and the organizer must re-upload.
+
+**Public cert view page**: `app/(public)/certs/[viewPage]/[certId]/page.tsx` is intentionally unauthenticated and marked `force-dynamic` (no static caching, since it increments `Certificate.viewCount` on every visit). `viewPage` is a cosmetic slug only — `certId` is the real lookup key.
 
 **Path alias**: `@/*` maps to the project root (e.g. `@/lib/auth`, `@/components/...`).
 

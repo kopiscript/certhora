@@ -157,7 +157,9 @@ export async function POST(
   )
 
   // ── Persist — update status to QUEUED ────────────────────────────────────
-  await prisma.$transaction(
+  // Neon's HTTP driver doesn't support `$transaction` in any form, so these
+  // independent per-row updates run concurrently instead.
+  await Promise.all(
     outputs.map((o, i) =>
       prisma.certificate.update({
         where: { certId: o.certId },

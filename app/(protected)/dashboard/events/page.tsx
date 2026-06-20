@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import Link from "next/link"
 import { Plus, CalendarDays, Users, CheckCircle, Clock, FileText } from "lucide-react"
+import { DuplicateEventButton } from "./DuplicateEventButton"
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
   DRAFT:     { label: "Draft",     bg: "rgba(148,163,184,0.12)", color: "#94A3B8" },
@@ -131,6 +132,9 @@ export default async function EventsPage() {
                       </div>
                       <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginTop: 2 }}>participants</p>
                     </div>
+
+                    {/* Duplicate */}
+                    <DuplicateEventButton eventCode={ev.eventCode} />
                   </div>
                 </Link>
               )
