@@ -45,6 +45,8 @@ export default async function BillingPage() {
     expiryDate: organizer.expiryDate?.toISOString() ?? null,
     subscribeDate: organizer.subscribeDate?.toISOString() ?? null,
     orgName: organizer.orgName,
+    pendingTier: organizer.pendingTier as TierKey | null,
+    pendingEffectiveDate: organizer.pendingEffectiveDate?.toISOString() ?? null,
   }
 
   const txns: Transaction[] = transactions.map((t: typeof transactions[number]) => ({

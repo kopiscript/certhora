@@ -118,6 +118,10 @@ model Organizer {
   expiryDate    DateTime?
   subscribeDate DateTime?
 
+  pendingTier          Tier?
+  pendingCertQuota     Int?
+  pendingEffectiveDate DateTime?
+
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   events       Event[]
   subscription Subscription?

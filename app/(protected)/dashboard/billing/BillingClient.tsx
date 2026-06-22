@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   CreditCard, Calendar, ChevronRight, Check,
-  X, Download, Receipt, TrendingUp, Crown,
+  X, Download, Receipt, TrendingUp, Crown, Clock,
 } from 'lucide-react'
 import { TIERS, type Tier, type TierKey } from '@/lib/tiers'
 
@@ -46,6 +47,8 @@ export interface OrgInfo {
   expiryDate: string | null
   subscribeDate: string | null
   orgName: string
+  pendingTier: TierKey | null
+  pendingEffectiveDate: string | null
 }
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -56,6 +59,8 @@ const MOCK_ORG: OrgInfo = {
   expiryDate: '2026-06-26T00:00:00Z',
   subscribeDate: '2025-06-26T00:00:00Z',
   orgName: 'Demo Org',
+  pendingTier: null,
+  pendingEffectiveDate: null,
 }
 
 const MOCK_TRANSACTIONS: Transaction[] = [
@@ -137,7 +142,15 @@ function TierBadge({ tierKey }: { tierKey: TierKey }) {
 
 // ─── Plans Modal ──────────────────────────────────────────────────────────────
 
-function PlansModal({ currentTier, onClose }: { currentTier: TierKey; onClose: () => void }) {
+interface PlansModalProps {
+  currentTier: TierKey
+  pendingTier: TierKey | null
+  onClose: () => void
+  onSelect: (tier: Tier) => void
+  busyTier: TierKey | null
+}
+
+function PlansModal({ currentTier, pendingTier, onClose, onSelect, busyTier }: PlansModalProps) {
   return (
     <div
       style={{
@@ -237,16 +250,34 @@ function PlansModal({ currentTier, onClose }: { currentTier: TierKey; onClose: (
                   ))}
                 </ul>
 
+                {/* Pending downgrade note */}
+                {pendingTier === tier.key && (
+                  <p style={{ fontSize: 10, color: '#F59E0B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Clock size={10} /> Scheduled — takes effect at period end
+                  </p>
+                )}
+
                 {/* CTA */}
-                <button style={{
-                  width: '100%', height: 34, borderRadius: 8,
-                  border: isCurrent ? `1px solid ${tier.borderColor}` : 'none',
-                  background: isCurrent ? 'transparent' : tier.color,
-                  color: isCurrent ? tier.color : '#fff',
-                  fontSize: 12, fontWeight: 600, cursor: isCurrent ? 'default' : 'pointer',
-                  opacity: isCurrent ? 0.8 : 1,
-                }}>
-                  {isCurrent ? '✓ Current Plan' : tierCta(tier, currentTier)}
+                <button
+                  disabled={isCurrent || busyTier !== null || pendingTier === tier.key}
+                  onClick={() => onSelect(tier)}
+                  style={{
+                    width: '100%', height: 34, borderRadius: 8,
+                    border: isCurrent ? `1px solid ${tier.borderColor}` : 'none',
+                    background: isCurrent ? 'transparent' : tier.color,
+                    color: isCurrent ? tier.color : '#fff',
+                    fontSize: 12, fontWeight: 600,
+                    cursor: isCurrent || busyTier !== null ? 'default' : 'pointer',
+                    opacity: isCurrent || (busyTier !== null && busyTier !== tier.key) ? 0.6 : isCurrent ? 0.8 : 1,
+                  }}
+                >
+                  {isCurrent
+                    ? '✓ Current Plan'
+                    : pendingTier === tier.key
+                    ? 'Scheduled'
+                    : busyTier === tier.key
+                    ? 'Please wait…'
+                    : tierCta(tier, currentTier)}
                 </button>
               </div>
             )
@@ -276,7 +307,50 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
   const org = propOrg ?? MOCK_ORG
   const transactions = propTxns.length > 0 ? propTxns : MOCK_TRANSACTIONS
 
+  const router = useRouter()
   const [showPlans, setShowPlans] = useState(false)
+  const [busyTier, setBusyTier] = useState<TierKey | null>(null)
+
+  useEffect(() => {
+    fetch('/api/billing/sync', { method: 'POST' }).then(res => {
+      if (res.ok) router.refresh()
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleSelectTier(tier: Tier) {
+    const currentIndex = TIERS.findIndex(t => t.key === org.tier)
+    const targetIndex = TIERS.findIndex(t => t.key === tier.key)
+    const isUpgrade = targetIndex > currentIndex
+
+    setBusyTier(tier.key)
+    try {
+      if (isUpgrade) {
+        const res = await fetch('/api/billing/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier: tier.key }),
+        })
+        const data = await res.json()
+        if (res.ok && data.paymentUrl) {
+          window.location.href = data.paymentUrl
+          return
+        }
+      } else {
+        const res = await fetch('/api/billing/downgrade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier: tier.key }),
+        })
+        if (res.ok) {
+          setShowPlans(false)
+          router.refresh()
+        }
+      }
+    } finally {
+      setBusyTier(null)
+    }
+  }
 
   const activeTier = TIERS.find(t => t.key === org.tier) ?? TIERS[1]
   const usedPct = org.certQuota > 0
@@ -338,6 +412,19 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
                   </span>
                 </div>
               </div>
+
+              {/* Pending downgrade banner */}
+              {org.pendingTier && org.pendingEffectiveDate && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+                  color: '#FCD34D', background: 'rgba(251,191,36,0.10)',
+                  border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8,
+                  padding: '7px 10px', width: 'fit-content',
+                }}>
+                  <Clock size={13} />
+                  Downgrading to {TIERS.find(t => t.key === org.pendingTier)?.name ?? org.pendingTier} on {fmtDate(org.pendingEffectiveDate)}
+                </div>
+              )}
 
               {/* Meta row */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
@@ -566,7 +653,13 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
 
       {/* ── Plans Modal ─────────────────────────────────────────────────────── */}
       {showPlans && (
-        <PlansModal currentTier={org.tier} onClose={() => setShowPlans(false)} />
+        <PlansModal
+          currentTier={org.tier}
+          pendingTier={org.pendingTier}
+          busyTier={busyTier}
+          onClose={() => setShowPlans(false)}
+          onSelect={handleSelectTier}
+        />
       )}
     </div>
   )

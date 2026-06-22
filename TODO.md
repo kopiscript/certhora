@@ -7,11 +7,11 @@
 
 ## Features to Complete
 - [ ] `app/(protected)/dashboard/config/page.tsx` — appears empty/stub
-- [ ] Billing page (`BillingClient.tsx`) — wire up real payment/subscription logic
-- [ ] Subscription tier enforcement (FREE quota limits on certificate generation)
+- [x] Billing page (`BillingClient.tsx`) — wire up real payment/subscription logic — added `lib/toyyibpay.ts` (mock checkout when `TOYYIBPAY_SECRET_KEY` unset, real API call when set), `/api/billing/checkout` (upgrade, creates `PaymentTransaction`), `/api/billing/downgrade` (schedules a pending tier change for period end, no payment), `/api/billing/callback` (webhook, applies tier/quota/`Subscription` on success), `/api/billing/sync` (applies a lapsed pending downgrade, called from `BillingClient` on mount), and `/billing/mock-pay/[billcode]` (dev-only simulated checkout page since no real toyyibpay creds exist yet). Downgrades apply at end of the current paid period via new `Organizer.pendingTier/pendingCertQuota/pendingEffectiveDate` fields + `lib/billing.ts#applyPendingTierChange`.
+- [x] Subscription tier enforcement (FREE quota limits on certificate generation) — was already implemented in `generate-certificates/route.ts`; additionally now applies any lapsed pending downgrade before checking quota.
 - [ ] Email sending for certificates (not visible in codebase yet)
 - [ ] Participant email features — not yet discussed/decided (e.g. notify participant when cert is issued, resend, reminders). Needs a requirements discussion before scoping.
-- [ ] Admin panel (no `/admin` route found in structure)
+- [ ] Admin panel (no `/admin` route found in structure) — `proxy.ts` already gates `/admin/*` to `UserType.ADMIN`, but no pages exist yet. **Next plan after billing**: feature flags with per-organizer overrides (global toggle + per-org override row), not just global on/off.
 
 ## New Features
 - [x] Smart auto-center guides when dragging elements (like Canva) — already implemented in `TemplateEditor.tsx` (snap points for canvas center + sibling elements, rendered guide lines)
