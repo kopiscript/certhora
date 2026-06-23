@@ -59,5 +59,15 @@ export default async function BillingPage() {
     refno: t.refno ?? null,
   }))
 
-  return <BillingClient org={org} transactions={txns} monthlyUsed={monthlyUsed} />
+  const fullName = session.user.name ?? ''
+  const [firstName, ...rest] = fullName.split(' ').filter(Boolean)
+
+  const checkoutDefaults = {
+    firstName: firstName ?? '',
+    lastName: rest.join(' '),
+    email: session.user.email ?? '',
+    orgName: organizer.orgName,
+  }
+
+  return <BillingClient org={org} transactions={txns} monthlyUsed={monthlyUsed} checkoutDefaults={checkoutDefaults} />
 }

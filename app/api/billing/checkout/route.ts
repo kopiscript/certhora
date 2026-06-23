@@ -2,18 +2,42 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { createBill } from "@/lib/toyyibpay"
+import { createBill } from "@/lib/billplz"
 import { TIERS, type TierKey } from "@/lib/tiers"
+import type { PaymentMethod } from "@prisma/client"
+
+interface CheckoutBody {
+  tier?: TierKey
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  country?: string
+  paymentMethod?: PaymentMethod
+  agreeTerms?: boolean
+}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { tier } = (await req.json()) as { tier?: TierKey }
+  const body = (await req.json()) as CheckoutBody
+  const { tier, firstName, lastName, email, phone, country, paymentMethod, agreeTerms } = body
+
   const targetTier = TIERS.find(t => t.key === tier)
   if (!targetTier) return NextResponse.json({ error: "Invalid tier" }, { status: 400 })
   if (targetTier.key === "ENTERPRISE" || targetTier.price === null) {
     return NextResponse.json({ error: "Contact sales for this tier" }, { status: 400 })
+  }
+
+  if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !phone?.trim() || !country?.trim()) {
+    return NextResponse.json({ error: "Missing required payment details" }, { status: 400 })
+  }
+  if (paymentMethod !== "CARD" && paymentMethod !== "FPX") {
+    return NextResponse.json({ error: "Invalid payment method" }, { status: 400 })
+  }
+  if (!agreeTerms) {
+    return NextResponse.json({ error: "You must agree to the Terms and Privacy Policy" }, { status: 400 })
   }
 
   const organizer = await prisma.organizer.findUnique({
@@ -40,6 +64,12 @@ export async function POST(req: Request) {
         tierRequested: targetTier.key,
         certQuotaReq: targetTier.quota,
         status: "PENDING",
+        paymentMethod,
+        payorFirstName: firstName.trim(),
+        payorLastName: lastName.trim(),
+        payorEmail: email.trim(),
+        payorPhone: phone.trim(),
+        payorCountry: country.trim(),
       },
     })
     transactionId = txn.id
@@ -54,6 +84,11 @@ export async function POST(req: Request) {
       amount: targetTier.price,
       tierRequested: targetTier.key,
       userId: session.user.id,
+      paymentMethod,
+      payorFirstName: firstName.trim(),
+      payorLastName: lastName.trim(),
+      payorEmail: email.trim(),
+      payorPhone: phone.trim(),
     })
     return NextResponse.json({ paymentUrl })
   } catch (err) {

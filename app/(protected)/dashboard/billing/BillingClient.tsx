@@ -7,6 +7,7 @@ import {
   X, Download, Receipt, TrendingUp, Crown, Clock,
 } from 'lucide-react'
 import { TIERS, type Tier, type TierKey } from '@/lib/tiers'
+import CheckoutForm, { type CheckoutDefaults } from './CheckoutForm'
 
 export { TIERS }
 export type { TierKey }
@@ -301,15 +302,17 @@ interface Props {
   org: OrgInfo
   transactions: Transaction[]
   monthlyUsed: number
+  checkoutDefaults: CheckoutDefaults
 }
 
-export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUsed }: Props) {
+export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUsed, checkoutDefaults }: Props) {
   const org = propOrg ?? MOCK_ORG
   const transactions = propTxns.length > 0 ? propTxns : MOCK_TRANSACTIONS
 
   const router = useRouter()
   const [showPlans, setShowPlans] = useState(false)
   const [busyTier, setBusyTier] = useState<TierKey | null>(null)
+  const [checkoutTier, setCheckoutTier] = useState<Tier | null>(null)
 
   useEffect(() => {
     fetch('/api/billing/sync', { method: 'POST' }).then(res => {
@@ -323,29 +326,22 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
     const targetIndex = TIERS.findIndex(t => t.key === tier.key)
     const isUpgrade = targetIndex > currentIndex
 
+    if (isUpgrade) {
+      setShowPlans(false)
+      setCheckoutTier(tier)
+      return
+    }
+
     setBusyTier(tier.key)
     try {
-      if (isUpgrade) {
-        const res = await fetch('/api/billing/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier: tier.key }),
-        })
-        const data = await res.json()
-        if (res.ok && data.paymentUrl) {
-          window.location.href = data.paymentUrl
-          return
-        }
-      } else {
-        const res = await fetch('/api/billing/downgrade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier: tier.key }),
-        })
-        if (res.ok) {
-          setShowPlans(false)
-          router.refresh()
-        }
+      const res = await fetch('/api/billing/downgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: tier.key }),
+      })
+      if (res.ok) {
+        setShowPlans(false)
+        router.refresh()
       }
     } finally {
       setBusyTier(null)
@@ -659,6 +655,15 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
           busyTier={busyTier}
           onClose={() => setShowPlans(false)}
           onSelect={handleSelectTier}
+        />
+      )}
+
+      {/* ── Checkout Form ───────────────────────────────────────────────────── */}
+      {checkoutTier && (
+        <CheckoutForm
+          tier={checkoutTier}
+          defaults={checkoutDefaults}
+          onClose={() => setCheckoutTier(null)}
         />
       )}
     </div>
