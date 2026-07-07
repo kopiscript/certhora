@@ -41,7 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
 TODO.md
 CLAUDE.md
+MARKETING_STRATEGY.md
 
 /.claude/

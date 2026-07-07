@@ -11,9 +11,9 @@ import { Label } from "@/components/ui/label"
 
 const FEATURES = [
   "Instant QR verification on every certificate",
-  "Bulk CSV import — thousands of recipients at once",
-  "Beautiful, brandable certificate templates",
-  "Automated email delivery on publish",
+  "Custom certificate templates with drag-and-drop layout",
+  "Publicly verifiable certificate links — no login required",
+  "Email delivery to participants with one click",
 ]
 
 export default function SignupPage() {

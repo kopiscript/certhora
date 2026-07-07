@@ -51,7 +51,6 @@ export const TIERS: readonly Tier[] = [
       '300 certificates / month',
       'Custom certificate background',
       'Bulk / batch generation',
-      'Participant CSV import',
       'Analytics dashboard',
       'Priority email support',
     ],

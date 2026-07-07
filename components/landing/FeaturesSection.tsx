@@ -46,8 +46,8 @@ const FeaturesSection: React.FC = () => {
     },
     {
       icon: ShieldCheck,
-      title: 'Advanced Security',
-      description: 'Leverage blockchain-backed verification to ensure tamper-proof credentials and prevent fraud.'
+      title: 'Tamper-Evident by Design',
+      description: 'Every certificate has a unique, permanent verification link and QR code, so anyone can confirm it’s genuine in seconds — no accounts or downloads required.'
     },
     {
       icon: QrCode,

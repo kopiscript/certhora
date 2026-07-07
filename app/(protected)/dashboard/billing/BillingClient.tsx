@@ -427,7 +427,8 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
                 {org.expiryDate && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ct-text-3)' }}>
                     <Calendar size={13} style={{ color: activeTier.color, opacity: 0.8 }} />
-                    Renews on <span style={{ color: 'var(--ct-text-2)', fontWeight: 500, marginLeft: 3 }}>{fmtDate(org.expiryDate)}</span>
+                    Expires on <span style={{ color: 'var(--ct-text-2)', fontWeight: 500, marginLeft: 3 }}>{fmtDate(org.expiryDate)}</span>
+                    <span style={{ marginLeft: 3 }}>— no auto-renewal, pay again before then to keep this plan</span>
                   </div>
                 )}
                 {org.subscribeDate && (

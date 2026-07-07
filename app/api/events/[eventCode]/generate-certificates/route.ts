@@ -13,7 +13,7 @@ import {
   type AdditionalPlaceholder,
 } from "@/lib/certificate-generator"
 import sharp from "sharp"
-import { applyPendingTierChange } from "@/lib/billing"
+import { applyPendingTierChange, applyExpiredSubscription } from "@/lib/billing"
 
 export async function POST(
   _req: Request,
@@ -31,6 +31,7 @@ export async function POST(
   if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
 
   await applyPendingTierChange(organizer.organizerCd)
+  await applyExpiredSubscription(organizer.organizerCd)
   organizer = await prisma.organizer.findUnique({
     where: { organizerCd: organizer.organizerCd },
     select: { organizerCd: true, certQuota: true },

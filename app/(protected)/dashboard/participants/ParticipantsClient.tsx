@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Search, Download, ChevronDown, ChevronLeft, ChevronRight,
-  Edit2, ExternalLink, X, Check, Loader2, Users, Filter, Send, CheckCircle,
+  Edit2, ExternalLink, X, Check, Loader2, Users, Filter, Send,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -389,7 +389,6 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
 
   // ── Send emails (per-event bulk, or a manual cross-event selection) ───────────
   const [sending, setSending] = useState(false)
-  const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null)
   const [sendError, setSendError] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -470,7 +469,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
     if (sending) return
 
     if (selectedCount > 0) {
-      setSending(true); setSendError(''); setSendResult(null)
+      setSending(true); setSendError('')
       try {
         const res = await fetch('/api/participants/send-emails', {
           method: 'POST',
@@ -479,7 +478,6 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error)
-        setSendResult({ sent: data.sent, failed: data.failed })
         setSelectedIds(new Set())
         router.refresh()
       } catch (err) {
@@ -491,12 +489,11 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
     }
 
     if (!eventFilter || queuedForEvent === 0) return
-    setSending(true); setSendError(''); setSendResult(null)
+    setSending(true); setSendError('')
     try {
       const res = await fetch(`/api/events/${eventFilter}/send-emails`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setSendResult({ sent: data.sent, failed: data.failed })
       router.refresh()
     } catch (err) {
       setSendError((err as Error).message)
@@ -534,38 +531,33 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* Send emails: manual selection takes priority over the per-event bulk send */}
-          {(selectedCount > 0 || eventFilter) && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+          {(() => {
+            const sendDisabled = sending || (selectedCount === 0 && queuedForEvent === 0)
+            const tooltip = sendError || (selectedCount === 0 && queuedForEvent === 0 ? 'Select participants, or pick an event with sendable certificates' : undefined)
+            return (
               <button
                 onClick={handleSendEmails}
-                disabled={sending || (selectedCount === 0 && queuedForEvent === 0)}
-                title={selectedCount === 0 && queuedForEvent === 0 ? 'No queued certificates for this event' : undefined}
+                disabled={sendDisabled}
+                title={tooltip}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 7,
                   height: 36, padding: '0 14px',
-                  background: (sending || (selectedCount === 0 && queuedForEvent === 0)) ? 'var(--ct-surface)' : 'var(--ct-surface-2)',
-                  color: (sending || (selectedCount === 0 && queuedForEvent === 0)) ? 'var(--ct-text-3)' : 'var(--ct-text)',
-                  border: '1px solid var(--ct-border)', borderRadius: 8,
+                  background: sendDisabled ? 'var(--ct-surface-2)' : 'var(--ct-blue)',
+                  color: sendDisabled ? 'var(--ct-text-3)' : 'white',
+                  border: 'none', borderRadius: 8,
                   fontSize: 13, fontWeight: 500,
-                  cursor: (sending || (selectedCount === 0 && queuedForEvent === 0)) ? 'not-allowed' : 'pointer',
+                  cursor: sendDisabled ? 'not-allowed' : 'pointer',
+                  opacity: sendDisabled ? 0.6 : 1,
                 }}
               >
                 {sending
                   ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</>
                   : selectedCount > 0
                     ? <><Send size={14} /> Send Selected ({selectedCount})</>
-                    : <><Send size={14} /> Send Emails ({queuedForEvent})</>}
+                    : <><Send size={14} /> Send Emails{eventFilter ? ` (${queuedForEvent})` : ''}</>}
               </button>
-              {sendResult && (
-                <p style={{ fontSize: 11, color: '#22C55E', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <CheckCircle size={12} /> Sent {sendResult.sent}{sendResult.failed > 0 ? `, ${sendResult.failed} failed` : ''}
-                </p>
-              )}
-              {sendError && (
-                <p style={{ fontSize: 11, color: 'var(--ct-error)', maxWidth: 240, textAlign: 'right' }}>{sendError}</p>
-              )}
-            </div>
-          )}
+            )
+          })()}
 
           {/* Export button */}
           <div ref={exportBtnRef} style={{ position: 'relative' }}>

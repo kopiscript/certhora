@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { applyPendingTierChange } from "@/lib/billing"
+import { applyPendingTierChange, applyExpiredSubscription } from "@/lib/billing"
 
 export async function POST() {
   const session = await getServerSession(authOptions)
@@ -15,6 +15,7 @@ export async function POST() {
   if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
 
   await applyPendingTierChange(organizer.organizerCd)
+  await applyExpiredSubscription(organizer.organizerCd)
 
   return NextResponse.json({ ok: true })
 }

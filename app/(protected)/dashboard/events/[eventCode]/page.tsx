@@ -7,6 +7,7 @@ import Link from "next/link"
 import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare, Copy } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
 import { SendEmailsButton } from "./SendEmailsButton"
+import { AddParticipantsButton } from "./AddParticipantsButton"
 import { BadgeUpload } from "./BadgeUpload"
 import { EditDesign } from "./EditDesign"
 
@@ -208,12 +209,15 @@ export default async function EventDetailPage({ params }: Props) {
 
         {/* ── Participants table ──────────────────────────────────────── */}
         <div>
-          <p style={{
-            fontSize: 11, fontWeight: 600, letterSpacing: "0.06em",
-            textTransform: "uppercase", color: "var(--ct-text-2)", marginBottom: 10,
-          }}>
-            Participants
-          </p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <p style={{
+              fontSize: 11, fontWeight: 600, letterSpacing: "0.06em",
+              textTransform: "uppercase", color: "var(--ct-text-2)", margin: 0,
+            }}>
+              Participants
+            </p>
+            <AddParticipantsButton eventCode={eventCode} />
+          </div>
           <div style={{
             background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
             borderRadius: 10, overflow: "hidden",
