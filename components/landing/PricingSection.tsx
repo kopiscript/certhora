@@ -31,7 +31,7 @@ const PricingCard: React.FC<{ tier: Tier }> = ({ tier }) => {
         <span className="text-base text-gray-400 ml-1">{tier.priceSub}</span>
       </div>
       <p className="text-gray-500 text-xs mb-6">
-        {tier.quota === Infinity ? 'Unlimited certificates' : `${tier.quota.toLocaleString()} certificates / month`}
+        {tier.quota.toLocaleString()} certificates / month
       </p>
 
       <ul className="text-left w-full space-y-3 mb-8 flex-grow">
@@ -43,13 +43,13 @@ const PricingCard: React.FC<{ tier: Tier }> = ({ tier }) => {
         ))}
       </ul>
 
-      <Link href={tier.key === 'ENTERPRISE' ? 'mailto:sales@certhora.com' : '/signup'} className="w-full mt-auto">
+      <Link href="/signup" className="w-full mt-auto">
         <motion.button
           className={`w-full py-3 rounded-full text-white font-semibold transition-all duration-300 ${tier.badge ? 'bg-gradient-to-br from-[#4f46e5] to-[#06b6d4] hover:shadow-lg hover:shadow-indigo-500/50' : 'bg-white/10 border border-white/20 hover:bg-white/20'}`}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          {tier.key === 'ENTERPRISE' ? 'Contact Sales' : tier.key === 'FREE' ? 'Start Free' : 'Upgrade'}
+          {tier.key === 'FREE' ? 'Start Free' : 'Upgrade'}
         </motion.button>
       </Link>
     </motion.div>
@@ -70,7 +70,7 @@ const PricingSection: React.FC = () => {
           Simple, Transparent <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-600">Pricing</span>
         </motion.h2>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 justify-center">
+        <div className="grid md:grid-cols-3 gap-8 justify-center">
           {TIERS.map((tier) => (
             <PricingCard key={tier.key} tier={tier} />
           ))}

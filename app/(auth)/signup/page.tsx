@@ -153,7 +153,7 @@ export default function SignupPage() {
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-            Free to start — 30 certificates/month included
+            Free to start — 40 certificates/month included
           </div>
         </div>
       </aside>

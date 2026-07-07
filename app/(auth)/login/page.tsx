@@ -82,7 +82,7 @@ export default function LoginPage() {
               Professional certificates,<br />built for scale.
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              From single events to enterprise deployments — manage,
+              From single workshops to recurring events — manage,
               distribute, and verify digital credentials in one place.
             </p>
           </div>

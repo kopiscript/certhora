@@ -18,7 +18,7 @@ const STEPS = [
     icon: UserPlus,
     title: 'Create your organizer account',
     description:
-      'Sign up free — no card required. Every account starts on the Free tier with 30 certificates a month.',
+      'Sign up free — no card required. Every account starts on the Free tier with 40 certificates a month.',
   },
   {
     icon: CalendarPlus,
@@ -61,7 +61,7 @@ const STEPS = [
 const FAQ = [
   {
     q: 'How many certificates can I issue?',
-    a: 'The Free plan includes 30 certificates a month at no cost. Starter, Pro, and Enterprise plans raise that limit — see the Pricing page for the full breakdown. Your quota resets monthly and only counts certificates that have actually been generated.',
+    a: 'The Free plan includes 40 certificates a month at no cost. Starter and Pro plans raise that limit — see the Pricing page for the full breakdown. Your quota resets monthly and only counts certificates that have actually been generated.',
   },
   {
     q: 'Do participants get emailed automatically?',

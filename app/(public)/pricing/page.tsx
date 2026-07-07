@@ -29,7 +29,7 @@ export default function PricingPage() {
             Pick a plan that fits how many certificates you issue. Upgrade or downgrade anytime.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {TIERS.map((tier) => {
               const Icon = tier.icon;
               return (
@@ -58,7 +58,7 @@ export default function PricingPage() {
                     <span className="text-sm text-gray-400">{tier.priceSub}</span>
                   </div>
                   <p className="text-xs text-gray-500 mb-6">
-                    {tier.quota === Infinity ? 'Unlimited certificates' : `${tier.quota.toLocaleString()} certificates / month`}
+                    {tier.quota.toLocaleString()} certificates / month
                   </p>
 
                   <ul className="text-left w-full space-y-2.5 mb-7 flex-grow">
@@ -70,7 +70,7 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
-                  <Link href={tier.key === 'ENTERPRISE' ? 'mailto:sales@certhora.com' : '/signup'} className="w-full">
+                  <Link href="/signup" className="w-full">
                     <button
                       className="w-full py-2.5 rounded-full text-sm font-semibold transition-all duration-300 hover:opacity-90"
                       style={{
@@ -79,7 +79,7 @@ export default function PricingPage() {
                         color: '#fff',
                       }}
                     >
-                      {tier.key === 'ENTERPRISE' ? 'Contact Sales' : tier.key === 'FREE' ? 'Get Started' : 'Upgrade'}
+                      {tier.key === 'FREE' ? 'Get Started' : 'Upgrade'}
                     </button>
                   </Link>
                 </div>

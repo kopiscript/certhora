@@ -25,9 +25,8 @@ export async function POST(req: Request) {
   const { tier, firstName, lastName, email, phone, country, paymentMethod, agreeTerms } = body
 
   const targetTier = TIERS.find(t => t.key === tier)
-  if (!targetTier) return NextResponse.json({ error: "Invalid tier" }, { status: 400 })
-  if (targetTier.key === "ENTERPRISE" || targetTier.price === null) {
-    return NextResponse.json({ error: "Contact sales for this tier" }, { status: 400 })
+  if (!targetTier || targetTier.price === null) {
+    return NextResponse.json({ error: "Invalid tier" }, { status: 400 })
   }
 
   if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !phone?.trim() || !country?.trim()) {

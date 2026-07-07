@@ -13,7 +13,6 @@ export { TIERS }
 export type { TierKey }
 
 function tierCta(target: Tier, current: TierKey) {
-  if (target.key === 'ENTERPRISE') return 'Contact Sales'
   const currentIndex = TIERS.findIndex(t => t.key === current)
   const targetIndex = TIERS.findIndex(t => t.key === target.key)
   return targetIndex > currentIndex ? 'Upgrade' : 'Downgrade'
