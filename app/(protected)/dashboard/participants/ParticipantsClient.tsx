@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Search, Download, ChevronDown, ChevronLeft, ChevronRight,
-  Edit2, ExternalLink, X, Check, Loader2, Users, Filter,
+  Edit2, ExternalLink, X, Check, Loader2, Users, Filter, Send, CheckCircle,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -363,6 +364,8 @@ interface Props {
 }
 
 export function ParticipantsClient({ events: propEvents, initialCerts }: Props) {
+  const router = useRouter()
+
   // Use real data if available, fall back to mock
   const data = initialCerts.length > 0 ? initialCerts : MOCK_CERTS
   const events = propEvents.length > 0 ? propEvents : MOCK_EVENTS
@@ -383,6 +386,12 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
   // ── Export dropdown ──────────────────────────────────────────────────────────
   const [showExport, setShowExport] = useState(false)
   const exportBtnRef = useRef<HTMLDivElement>(null)
+
+  // ── Send emails (per-event bulk, or a manual cross-event selection) ───────────
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null)
+  const [sendError, setSendError] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Keep rows in sync with initialCerts prop changes
   useEffect(() => {
@@ -424,6 +433,78 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
     setRows(prev => prev.map(r => r.certId === certId ? { ...r, participantName: name, participantEmail: email } : r))
   }
 
+  const queuedForEvent = useMemo(
+    () => eventFilter
+      ? rows.filter(r => r.eventCode === eventFilter && ['QUEUED', 'FAILED', 'BOUNCED'].includes(r.emailStatus)).length
+      : 0,
+    [rows, eventFilter]
+  )
+
+  const selectedCount = selectedIds.size
+
+  const toggleSelect = useCallback((certId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(certId)) next.delete(certId)
+      else next.add(certId)
+      return next
+    })
+  }, [])
+
+  const pageAllSelected = paginated.length > 0 && paginated.every(r => selectedIds.has(r.certId))
+  const pageSomeSelected = paginated.some(r => selectedIds.has(r.certId))
+
+  const toggleSelectPage = useCallback(() => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (pageAllSelected) {
+        paginated.forEach(r => next.delete(r.certId))
+      } else {
+        paginated.forEach(r => next.add(r.certId))
+      }
+      return next
+    })
+  }, [pageAllSelected, paginated])
+
+  const handleSendEmails = async () => {
+    if (sending) return
+
+    if (selectedCount > 0) {
+      setSending(true); setSendError(''); setSendResult(null)
+      try {
+        const res = await fetch('/api/participants/send-emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ certIds: Array.from(selectedIds) }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        setSendResult({ sent: data.sent, failed: data.failed })
+        setSelectedIds(new Set())
+        router.refresh()
+      } catch (err) {
+        setSendError((err as Error).message)
+      } finally {
+        setSending(false)
+      }
+      return
+    }
+
+    if (!eventFilter || queuedForEvent === 0) return
+    setSending(true); setSendError(''); setSendResult(null)
+    try {
+      const res = await fetch(`/api/events/${eventFilter}/send-emails`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setSendResult({ sent: data.sent, failed: data.failed })
+      router.refresh()
+    } catch (err) {
+      setSendError((err as Error).message)
+    } finally {
+      setSending(false)
+    }
+  }
+
   // ── Range text ───────────────────────────────────────────────────────────────
   const rangeStart = filtered.length === 0 ? 0 : (safePage - 1) * perPage + 1
   const rangeEnd = Math.min(safePage * perPage, filtered.length)
@@ -451,28 +532,64 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
           </p>
         </div>
 
-        {/* Export button */}
-        <div ref={exportBtnRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowExport(v => !v)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              height: 36, padding: '0 14px', background: 'var(--ct-blue)',
-              color: 'white', border: 'none', borderRadius: 8,
-              fontSize: 13, fontWeight: 500, cursor: 'pointer',
-            }}
-          >
-            <Download size={14} />
-            Export CSV
-            <ChevronDown size={12} style={{ marginLeft: 2, opacity: 0.8 }} />
-          </button>
-          {showExport && (
-            <ExportDropdown
-              allCerts={rows}
-              events={events}
-              onClose={() => setShowExport(false)}
-            />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Send emails: manual selection takes priority over the per-event bulk send */}
+          {(selectedCount > 0 || eventFilter) && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+              <button
+                onClick={handleSendEmails}
+                disabled={sending || (selectedCount === 0 && queuedForEvent === 0)}
+                title={selectedCount === 0 && queuedForEvent === 0 ? 'No queued certificates for this event' : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  height: 36, padding: '0 14px',
+                  background: (sending || (selectedCount === 0 && queuedForEvent === 0)) ? 'var(--ct-surface)' : 'var(--ct-surface-2)',
+                  color: (sending || (selectedCount === 0 && queuedForEvent === 0)) ? 'var(--ct-text-3)' : 'var(--ct-text)',
+                  border: '1px solid var(--ct-border)', borderRadius: 8,
+                  fontSize: 13, fontWeight: 500,
+                  cursor: (sending || (selectedCount === 0 && queuedForEvent === 0)) ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {sending
+                  ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</>
+                  : selectedCount > 0
+                    ? <><Send size={14} /> Send Selected ({selectedCount})</>
+                    : <><Send size={14} /> Send Emails ({queuedForEvent})</>}
+              </button>
+              {sendResult && (
+                <p style={{ fontSize: 11, color: '#22C55E', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <CheckCircle size={12} /> Sent {sendResult.sent}{sendResult.failed > 0 ? `, ${sendResult.failed} failed` : ''}
+                </p>
+              )}
+              {sendError && (
+                <p style={{ fontSize: 11, color: 'var(--ct-error)', maxWidth: 240, textAlign: 'right' }}>{sendError}</p>
+              )}
+            </div>
           )}
+
+          {/* Export button */}
+          <div ref={exportBtnRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowExport(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                height: 36, padding: '0 14px', background: 'var(--ct-blue)',
+                color: 'white', border: 'none', borderRadius: 8,
+                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              }}
+            >
+              <Download size={14} />
+              Export CSV
+              <ChevronDown size={12} style={{ marginLeft: 2, opacity: 0.8 }} />
+            </button>
+            {showExport && (
+              <ExportDropdown
+                allCerts={rows}
+                events={events}
+                onClose={() => setShowExport(false)}
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -558,6 +675,18 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--ct-border)' }}>
+                <th style={{
+                  padding: '10px 16px', textAlign: 'left', width: 1,
+                  background: 'var(--background)', position: 'sticky', top: 0,
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={pageAllSelected}
+                    ref={el => { if (el) el.indeterminate = !pageAllSelected && pageSomeSelected }}
+                    onChange={toggleSelectPage}
+                    style={{ accentColor: 'var(--ct-blue)', cursor: 'pointer' }}
+                  />
+                </th>
                 {['Participant', 'Cert ID', 'Event', 'Email Status', 'Actions'].map(col => (
                   <th key={col} style={{
                     padding: '10px 16px', textAlign: 'left',
@@ -583,6 +712,16 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--ct-blue-dim)')}
                   onMouseLeave={e => (e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.014)')}
                 >
+                  {/* Select */}
+                  <td style={{ padding: '12px 16px', width: 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(row.certId)}
+                      onChange={() => toggleSelect(row.certId)}
+                      style={{ accentColor: 'var(--ct-blue)', cursor: 'pointer' }}
+                    />
+                  </td>
+
                   {/* Participant info */}
                   <td style={{ padding: '12px 16px', minWidth: 220 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

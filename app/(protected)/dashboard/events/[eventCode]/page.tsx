@@ -6,6 +6,7 @@ import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import Link from "next/link"
 import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare, Copy } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
+import { SendEmailsButton } from "./SendEmailsButton"
 import { BadgeUpload } from "./BadgeUpload"
 import { EditDesign } from "./EditDesign"
 
@@ -65,6 +66,9 @@ export default async function EventDetailPage({ params }: Props) {
   const pendingCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "PENDING").length
   const sentCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "SENT").length
   const queuedCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "QUEUED").length
+  const resendableCount = event.certificates.filter(
+    (c: typeof event.certificates[number]) => c.emailStatus === "QUEUED" || c.emailStatus === "FAILED" || c.emailStatus === "BOUNCED"
+  ).length
 
   const avgScore = feedback.length
     ? feedback.reduce((s: number, f: typeof feedback[number]) => s + f.npsScore, 0) / feedback.length
@@ -120,6 +124,10 @@ export default async function EventDetailPage({ params }: Props) {
             eventCode={eventCode}
             pendingCount={pendingCount}
             quotaRemaining={quotaRemaining}
+          />
+          <SendEmailsButton
+            eventCode={eventCode}
+            resendableCount={resendableCount}
           />
         </div>
       </header>

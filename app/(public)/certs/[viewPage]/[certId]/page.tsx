@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
+import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { CheckCircle, AlertTriangle, Clock, Calendar, Building2, BadgeCheck, Hash } from 'lucide-react'
 import type { Metadata } from 'next'
@@ -80,17 +81,13 @@ export default async function CertViewPage({ params }: Props) {
           zIndex: 50,
         }}
       >
-        <div
-          style={{
-            width: 30, height: 30, borderRadius: 8,
-            background: 'var(--ct-blue)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 800, fontSize: 14, color: '#fff',
-            flexShrink: 0,
-          }}
-        >
-          C
-        </div>
+        <Image
+          src="/certhoralogo.svg"
+          alt=""
+          width={30}
+          height={30}
+          className="h-[30px] w-[30px] shrink-0"
+        />
         <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ct-text)', letterSpacing: '-0.01em' }}>
           Certhora
         </span>

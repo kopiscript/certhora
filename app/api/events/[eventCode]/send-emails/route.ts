@@ -1,0 +1,34 @@
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { sendQueuedCertificates } from "@/lib/send-certificates"
+
+const BATCH_CAP = 20
+
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ eventCode: string }> }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { eventCode } = await params
+
+  const organizer = await prisma.organizer.findUnique({
+    where: { userId: session.user.id },
+    select: { organizerCd: true },
+  })
+  if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
+
+  const event = await prisma.event.findUnique({
+    where: { eventCode },
+    select: { organizerCd: true },
+  })
+  if (!event || event.organizerCd !== organizer.organizerCd) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 })
+  }
+
+  const result = await sendQueuedCertificates({ eventCode }, BATCH_CAP)
+  return NextResponse.json(result)
+}
