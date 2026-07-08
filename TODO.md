@@ -1,6 +1,7 @@
 # Certhora TODO
 
 ## Known Issues to Check
+- [ ] Treat Neon HTTP mode as an ongoing architectural constraint on new mutating code paths � this repo uses Prisma with `PrismaNeonHttp`, so `prisma.$transaction(...)` must not be used. For multi-step writes, use sequential `await`s for dependent operations, `Promise.all` for independent ones, and best-effort cleanup when partial failure matters.
 - [x] Confirm `/signup` flow creates user + organizer record correctly — was **completely broken**: `app/api/auth/register/route.ts` used `prisma.$transaction(async tx => ...)`, but Neon's HTTP driver rejects `$transaction` in any form ("Transactions are not supported in HTTP mode"), confirmed by testing directly against the DB. Every signup attempt 500'd. Fixed by replacing with sequential creates + best-effort cleanup on failure. Same bug also found and fixed in `app/api/events/route.ts` (event creation) and the cert-generation DB update (`generate-certificates/route.ts`, switched to `Promise.all`) — **event creation was broken too**.
 - [x] Verify certificate generation works end-to-end (R2 upload → public URL) — image generation/upload/array-ordering all correct; the only bug was the `$transaction` DB-update issue above, now fixed.
 - [x] Test public cert view page (`/certs/[viewPage]/[certId]`) works without auth — confirmed public (no session check), 404s correctly on missing certId. Fixed two gaps: `viewCount` was never incremented anywhere (now increments on view), and the page had no `dynamic = "force-dynamic"` so Next could have statically cached/staled the rendered cert page.
@@ -26,3 +27,5 @@
 - [x] Certificate generation — added `CacheControl` header in `lib/r2.ts`, plus `?v=timestamp` cache-busting param on cert image URLs so CDN/browser caches can't serve stale layouts
 - [x] Hide X/Y position fields from the template editor for name and QR elements (removed inputs + readout text, drag-to-position kept)
 - [x] Replace all placeholder logos with `certhoralogo.svg`, including the favicon — fixed login, signup, sidebar; wired `icons` metadata in `layout.tsx`, removed stale `app/favicon1.ico`
+
+
