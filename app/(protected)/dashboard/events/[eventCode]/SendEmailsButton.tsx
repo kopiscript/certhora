@@ -52,7 +52,7 @@ export function SendEmailsButton({
       }}
     >
       {loading
-        ? <><Loader2 size={14} className="animate-spin" /> Sending…</>
+        ? <><Loader2 size={14} className="animate-spin" /> Sending...</>
         : <><Send size={14} /> {canSendEmails ? `Send Emails (${resendableCount})` : "Pro Only: Send Emails"}</>}
     </button>
   )

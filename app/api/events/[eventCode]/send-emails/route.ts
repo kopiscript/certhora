@@ -27,7 +27,7 @@ export async function POST(
 
   const event = await prisma.event.findUnique({
     where: { eventCode },
-    select: { organizerCd: true, tier: true },
+    select: { organizerCd: true },
   })
   if (!event || event.organizerCd !== organizer.organizerCd) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 })
