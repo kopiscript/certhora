@@ -361,9 +361,10 @@ function ExportDropdown({ allCerts, events, onClose }: ExportDropdownProps) {
 interface Props {
   events: EventOption[]
   initialCerts: CertRow[]
+  canSendEmails: boolean
 }
 
-export function ParticipantsClient({ events: propEvents, initialCerts }: Props) {
+export function ParticipantsClient({ events: propEvents, initialCerts, canSendEmails }: Props) {
   const router = useRouter()
 
   // Use real data if available, fall back to mock
@@ -466,7 +467,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
   }, [pageAllSelected, paginated])
 
   const handleSendEmails = async () => {
-    if (sending) return
+    if (!canSendEmails || sending) return
 
     if (selectedCount > 0) {
       setSending(true); setSendError('')
@@ -532,8 +533,10 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* Send emails: manual selection takes priority over the per-event bulk send */}
           {(() => {
-            const sendDisabled = sending || (selectedCount === 0 && queuedForEvent === 0)
-            const tooltip = sendError || (selectedCount === 0 && queuedForEvent === 0 ? 'Select participants, or pick an event with sendable certificates' : undefined)
+            const sendDisabled = !canSendEmails || sending || (selectedCount === 0 && queuedForEvent === 0)
+            const tooltip = !canSendEmails
+              ? 'Upgrade to Pro to email participants'
+              : sendError || (selectedCount === 0 && queuedForEvent === 0 ? 'Select participants, or pick an event with sendable certificates' : undefined)
             return (
               <button
                 onClick={handleSendEmails}
@@ -550,11 +553,13 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
                   opacity: sendDisabled ? 0.6 : 1,
                 }}
               >
-                {sending
-                  ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</>
-                  : selectedCount > 0
-                    ? <><Send size={14} /> Send Selected ({selectedCount})</>
-                    : <><Send size={14} /> Send Emails{eventFilter ? ` (${queuedForEvent})` : ''}</>}
+                {!canSendEmails
+                  ? <><Send size={14} /> Pro Only: Send Emails</>
+                  : sending
+                    ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</>
+                    : selectedCount > 0
+                      ? <><Send size={14} /> Send Selected ({selectedCount})</>
+                      : <><Send size={14} /> Send Emails{eventFilter ? ` (${queuedForEvent})` : ''}</>}
               </button>
             )
           })()}
@@ -585,7 +590,20 @@ export function ParticipantsClient({ events: propEvents, initialCerts }: Props) 
         </div>
       </header>
 
-      {/* ── Filter Bar ───────────────────────────────────────────────────────── */}
+      
+      {!canSendEmails && (
+        <div style={{
+          padding: '10px 32px',
+          borderBottom: '1px solid var(--ct-border)',
+          background: 'rgba(96,165,250,0.08)',
+          color: '#93C5FD',
+          fontSize: 13,
+        }}>
+          Free plan can generate certificates, but participant email delivery is available on Pro only.
+        </div>
+      )}
+
+{/* ── Filter Bar ───────────────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 10, padding: '14px 32px',
         borderBottom: '1px solid var(--ct-border)', flexShrink: 0,

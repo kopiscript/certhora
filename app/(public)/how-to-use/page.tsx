@@ -18,7 +18,7 @@ const STEPS = [
     icon: UserPlus,
     title: 'Create your organizer account',
     description:
-      'Sign up free — no card required. Every account starts on the Free tier with 40 certificates a month.',
+      'Sign up free — no card required. Every account starts on the Free tier with 100 certificates a month.',
   },
   {
     icon: CalendarPlus,
@@ -48,7 +48,7 @@ const STEPS = [
     icon: Send,
     title: 'Send them out',
     description:
-      'Click Send Emails to deliver each participant a link to their certificate. Any that fail to send can simply be sent again.',
+      'Pro users can click Send Emails to deliver each participant a link to their certificate. Any that fail to send can simply be sent again.',
   },
   {
     icon: BadgeCheck,
@@ -61,11 +61,11 @@ const STEPS = [
 const FAQ = [
   {
     q: 'How many certificates can I issue?',
-    a: 'The Free plan includes 40 certificates a month at no cost. Starter and Pro plans raise that limit — see the Pricing page for the full breakdown. Your quota resets monthly and only counts certificates that have actually been generated.',
+    a: 'The Free plan includes 100 certificates a month at no cost. The Pro plan raises that limit to 500 a month. Your quota resets monthly and only counts certificates that have actually been generated.',
   },
   {
     q: 'Do participants get emailed automatically?',
-    a: 'No — you stay in control. After certificates are generated, you click "Send Emails" (per event, or for a selection of participants) to deliver them. This also means you can double-check everything before anything goes out.',
+    a: 'No — you stay in control. On the Pro plan, after certificates are generated, you click "Send Emails" (per event, or for a selection of participants) to deliver them. This also means you can double-check everything before anything goes out.',
   },
   {
     q: 'What if an email fails to send?',

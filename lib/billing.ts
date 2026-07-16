@@ -34,7 +34,7 @@ export async function applyExpiredSubscription(organizerCd: string) {
     select: { tier: true, expiryDate: true, pendingTier: true },
   })
   if (!organizer) return
-  if (organizer.tier === "FREE" || organizer.tier === "ENTERPRISE") return
+  if (organizer.tier === "FREE") return
   if (organizer.pendingTier) return // an explicit downgrade is already scheduled — let that run instead
   if (!organizer.expiryDate || organizer.expiryDate > new Date()) return
 

@@ -1,12 +1,13 @@
-import { Zap, Sparkles, Gift, type LucideIcon } from 'lucide-react'
+import { Sparkles, Gift, type LucideIcon } from 'lucide-react'
 
 export interface Tier {
-  key: 'FREE' | 'STARTER' | 'PRO'
+  key: 'FREE' | 'PRO'
   name: string
   price: number | null
   priceLabel: string
   priceSub: string
   quota: number
+  canEmailParticipants: boolean
   icon: LucideIcon
   color: string
   dimColor: string
@@ -22,62 +23,56 @@ export const TIERS: readonly Tier[] = [
     price: null,
     priceLabel: 'RM 0',
     priceSub: 'forever',
-    quota: 40,
+    quota: 100,
+    canEmailParticipants: false,
     icon: Gift,
     color: '#64748B',
     dimColor: 'rgba(100,116,139,0.12)',
     borderColor: 'rgba(100,116,139,0.25)',
     features: [
-      '40 certificates / month',
+      '100 certificates / month',
       'Standard certificate template',
       'Publicly verifiable links',
       'QR code on certificate',
-      'Email delivery',
       'Bulk CSV import',
-    ],
-  },
-  {
-    key: 'STARTER',
-    name: 'Starter',
-    price: 11.99,
-    priceLabel: 'RM 11.99',
-    priceSub: '/ month',
-    quota: 100,
-    icon: Zap,
-    color: '#3B82F6',
-    dimColor: 'rgba(59,130,246,0.10)',
-    borderColor: 'rgba(59,130,246,0.28)',
-    badge: 'Most Popular',
-    features: [
-      '100 certificates / month',
-      'Custom certificate background',
-      'Bulk / batch generation',
-      'Bulk CSV import',
-      'Analytics dashboard',
-      'Priority email support',
+      'Download and share certificates manually',
     ],
   },
   {
     key: 'PRO',
     name: 'Pro',
-    price: 39.99,
-    priceLabel: 'RM 39.99',
+    price: 10,
+    priceLabel: 'RM 10',
     priceSub: '/ month',
     quota: 500,
+    canEmailParticipants: true,
     icon: Sparkles,
     color: '#8B5CF6',
     dimColor: 'rgba(139,92,246,0.10)',
     borderColor: 'rgba(139,92,246,0.28)',
-    badge: 'Best Value',
+    badge: 'Most Popular',
     features: [
       '500 certificates / month',
       'Custom certificate background',
       'Bulk / batch generation',
       'Bulk CSV import',
       'Analytics dashboard',
-      'Priority email support',
+      'Email delivery to participants',
     ],
   },
 ] as const
 
 export type TierKey = Tier['key']
+
+export function normalizeTierKey(tier: string | null | undefined): TierKey {
+  return tier === 'FREE' ? 'FREE' : 'PRO'
+}
+
+export function getTier(tier: string | null | undefined): Tier {
+  const normalized = normalizeTierKey(tier)
+  return TIERS.find(t => t.key === normalized) ?? TIERS[0]
+}
+
+export function tierCanEmailParticipants(tier: string | null | undefined): boolean {
+  return getTier(tier).canEmailParticipants
+}

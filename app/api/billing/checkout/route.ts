@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { createBill } from "@/lib/billplz"
-import { TIERS, type TierKey } from "@/lib/tiers"
+import { TIERS, normalizeTierKey, type TierKey } from "@/lib/tiers"
 import type { PaymentMethod } from "@prisma/client"
 
 interface CheckoutBody {
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   })
   if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
 
-  const currentIndex = TIERS.findIndex(t => t.key === organizer.tier)
+  const currentIndex = TIERS.findIndex(t => t.key === normalizeTierKey(organizer.tier))
   const targetIndex = TIERS.findIndex(t => t.key === targetTier.key)
   if (targetIndex <= currentIndex) {
     return NextResponse.json({ error: "Use the downgrade endpoint for this tier change" }, { status: 400 })
@@ -96,3 +96,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to start checkout" }, { status: 500 })
   }
 }
+
+

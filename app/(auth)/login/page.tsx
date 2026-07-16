@@ -14,7 +14,7 @@ const FEATURES = [
   "Instant QR verification on every certificate",
   "Custom certificate templates with drag-and-drop layout",
   "Publicly verifiable certificate links — no login required",
-  "Email delivery to participants with one click",
+  "Pro includes participant email delivery",
 ]
 
 export default function LoginPage() {

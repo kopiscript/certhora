@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic"
 
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { TIERS } from "@/lib/tiers"
+import { getTier } from "@/lib/tiers"
 import MockPayActions from "./MockPayActions"
 
 interface Props {
@@ -15,7 +15,7 @@ export default async function MockPayPage({ params }: Props) {
   const txn = await prisma.paymentTransaction.findFirst({ where: { billcode } })
   if (!txn) notFound()
 
-  const tier = TIERS.find(t => t.key === txn.tierRequested)
+  const tier = getTier(txn.tierRequested)
 
   return (
     <div style={{

@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentSession, getCurrentOrganizer } from '@/lib/session'
 import { BillingClient } from './BillingClient'
-import type { OrgInfo, Transaction, TierKey } from './BillingClient'
+import type { OrgInfo, Transaction } from './BillingClient'
+import { normalizeTierKey } from '@/lib/tiers'
 
 export default async function BillingPage() {
   const session = await getCurrentSession()
@@ -40,12 +41,12 @@ export default async function BillingPage() {
   ])
 
   const org: OrgInfo = {
-    tier: organizer.tier as TierKey,
+    tier: normalizeTierKey(organizer.tier),
     certQuota: organizer.certQuota,
     expiryDate: organizer.expiryDate?.toISOString() ?? null,
     subscribeDate: organizer.subscribeDate?.toISOString() ?? null,
     orgName: organizer.orgName,
-    pendingTier: organizer.pendingTier as TierKey | null,
+    pendingTier: organizer.pendingTier ? normalizeTierKey(organizer.pendingTier) : null,
     pendingEffectiveDate: organizer.pendingEffectiveDate?.toISOString() ?? null,
   }
 
@@ -53,7 +54,7 @@ export default async function BillingPage() {
     id: t.id,
     billcode: t.billcode,
     amount: t.amount.toString(),
-    tierRequested: t.tierRequested as TierKey,
+    tierRequested: normalizeTierKey(t.tierRequested),
     status: t.status as Transaction['status'],
     createdAt: t.createdAt.toISOString(),
     refno: t.refno ?? null,

@@ -15,9 +15,7 @@ enum UserType {
 
 enum Tier {
   FREE
-  STARTER
   PRO
-  ENTERPRISE
 }
 
 enum PaymentStatus {

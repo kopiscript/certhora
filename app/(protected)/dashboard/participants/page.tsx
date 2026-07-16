@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentSession, getCurrentOrganizer } from '@/lib/session'
+import { tierCanEmailParticipants } from '@/lib/tiers'
 import { ParticipantsClient } from './ParticipantsClient'
 import type { CertRow, EventOption } from './ParticipantsClient'
 
@@ -47,5 +48,7 @@ export default async function ParticipantsPage() {
     eventName: e.eventName,
   }))
 
-  return <ParticipantsClient events={eventOptions} initialCerts={certRows} />
+  const canSendEmails = tierCanEmailParticipants(organizer.tier)
+
+  return <ParticipantsClient events={eventOptions} initialCerts={certRows} canSendEmails={canSendEmails} />
 }

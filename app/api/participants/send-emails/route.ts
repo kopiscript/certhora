@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendQueuedCertificates } from "@/lib/send-certificates"
+import { tierCanEmailParticipants } from "@/lib/tiers"
 
 const BATCH_CAP = 20
 
@@ -14,9 +15,12 @@ export async function POST(req: Request) {
 
   const organizer = await prisma.organizer.findUnique({
     where: { userId: session.user.id },
-    select: { organizerCd: true },
+    select: { organizerCd: true, tier: true },
   })
   if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
+  if (!tierCanEmailParticipants(organizer.tier)) {
+    return NextResponse.json({ error: "Email delivery is available on the Pro plan only" }, { status: 403 })
+  }
 
   let body: { certIds: string[] }
   try { body = await req.json() } catch {
@@ -34,3 +38,6 @@ export async function POST(req: Request) {
   )
   return NextResponse.json(result)
 }
+
+
+

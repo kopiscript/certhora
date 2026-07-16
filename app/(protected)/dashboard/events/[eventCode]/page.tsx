@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
+import { tierCanEmailParticipants } from "@/lib/tiers"
 import Link from "next/link"
 import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare, Copy } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
@@ -76,6 +77,7 @@ export default async function EventDetailPage({ params }: Props) {
     : 0
 
   const quotaRemaining = organizer.certQuota - usedThisMonth
+  const canSendEmails = tierCanEmailParticipants(organizer.tier)
 
   return (
     <div className="flex flex-col flex-1">
@@ -129,6 +131,7 @@ export default async function EventDetailPage({ params }: Props) {
           <SendEmailsButton
             eventCode={eventCode}
             resendableCount={resendableCount}
+            canSendEmails={canSendEmails}
           />
         </div>
       </header>
@@ -207,7 +210,18 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* ── Participants table ──────────────────────────────────────── */}
+        
+        {!canSendEmails && (
+          <div style={{
+            padding: "10px 14px", background: "rgba(96,165,250,0.08)",
+            border: "1px solid rgba(96,165,250,0.20)", borderRadius: 8,
+            fontSize: 13, color: "#93C5FD",
+          }}>
+            Free plan can generate certificates, but participant email delivery is available on Pro only.
+          </div>
+        )}
+
+{/* ── Participants table ──────────────────────────────────────── */}
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <p style={{
@@ -382,3 +396,5 @@ function InfoCard({ icon, label, value, sub }: { icon: React.ReactNode; label: s
     </div>
   )
 }
+
+

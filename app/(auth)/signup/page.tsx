@@ -13,7 +13,7 @@ const FEATURES = [
   "Instant QR verification on every certificate",
   "Custom certificate templates with drag-and-drop layout",
   "Publicly verifiable certificate links — no login required",
-  "Email delivery to participants with one click",
+  "Upgrade to Pro for participant email delivery",
 ]
 
 export default function SignupPage() {
@@ -121,7 +121,7 @@ export default function SignupPage() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Join thousands of event organizers who trust Certhora to
-              issue and manage their digital credentials.
+              issue and manage their digital credentials. Free includes 100 certificates a month, and Pro unlocks participant email delivery.
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export default function SignupPage() {
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-            Free to start — 40 certificates/month included
+            Free to start — 100 certificates/month included
           </div>
         </div>
       </aside>

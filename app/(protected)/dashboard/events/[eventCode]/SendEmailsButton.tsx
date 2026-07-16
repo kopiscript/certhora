@@ -7,15 +7,17 @@ import { useRouter } from "next/navigation"
 export function SendEmailsButton({
   eventCode,
   resendableCount,
+  canSendEmails,
 }: {
   eventCode: string
   resendableCount: number
+  canSendEmails: boolean
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const disabled = resendableCount === 0 || loading
+  const disabled = !canSendEmails || resendableCount === 0 || loading
 
   const handleSend = async () => {
     if (disabled) return
@@ -37,7 +39,7 @@ export function SendEmailsButton({
     <button
       onClick={handleSend}
       disabled={disabled}
-      title={error || (resendableCount === 0 ? "No sendable certificates" : undefined)}
+      title={error || (!canSendEmails ? "Upgrade to Pro to email participants" : resendableCount === 0 ? "No sendable certificates" : undefined)}
       style={{
         display: "flex", alignItems: "center", gap: 7,
         height: 36, padding: "0 14px",
@@ -50,8 +52,8 @@ export function SendEmailsButton({
       }}
     >
       {loading
-        ? <><Loader2 size={14} className="animate-spin" /> Sendingâ€¦</>
-        : <><Send size={14} /> Send Emails ({resendableCount})</>}
+        ? <><Loader2 size={14} className="animate-spin" /> Sending…</>
+        : <><Send size={14} /> {canSendEmails ? `Send Emails (${resendableCount})` : "Pro Only: Send Emails"}</>}
     </button>
   )
 }
