@@ -22,13 +22,6 @@ function baseUrl() {
   return process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 }
 
-async function createBillMock({ billcode }: CreateBillParams): Promise<CreateBillResult> {
-  console.warn(
-    "[billplz] BILLPLZ_API_KEY not set — using mock checkout. Set BILLPLZ_API_KEY, BILLPLZ_COLLECTION_ID and BILLPLZ_URL to enable real payments."
-  )
-  return { paymentUrl: `${baseUrl()}/billing/mock-pay/${billcode}` }
-}
-
 // Billplz's "method" param restricts the hosted checkout page to a single
 // payment gateway instead of showing every channel the collection supports.
 const BILLPLZ_METHOD: Record<PaymentMethod, string> = {
@@ -78,5 +71,5 @@ async function createBillReal(params: CreateBillParams): Promise<CreateBillResul
 }
 
 export async function createBill(params: CreateBillParams): Promise<CreateBillResult> {
-  return process.env.BILLPLZ_API_KEY ? createBillReal(params) : createBillMock(params)
+  return createBillReal(params)
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { isAllowedTemplateImageUrl } from "@/lib/validate-image-url"
 
 // ─── Generate unique event code ───────────────────────────────────────────────
 
@@ -104,6 +105,10 @@ export async function POST(req: Request) {
 
   if (!eventName?.trim()) {
     return NextResponse.json({ error: "eventName is required" }, { status: 400 })
+  }
+
+  if (typeof template?.imageUrl === "string" && !isAllowedTemplateImageUrl(template.imageUrl)) {
+    return NextResponse.json({ error: "Invalid imageUrl" }, { status: 400 })
   }
 
   const eventCode = await generateEventCode(organizer.organizerCd)

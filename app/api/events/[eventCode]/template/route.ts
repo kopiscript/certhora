@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { isAllowedTemplateImageUrl } from "@/lib/validate-image-url"
 
 interface Props { params: Promise<{ eventCode: string }> }
 
@@ -55,6 +56,10 @@ export async function PUT(req: Request, { params }: Props) {
   let body: Record<string, unknown>
   try { body = await req.json() } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
+  }
+
+  if (typeof body.imageUrl === "string" && !isAllowedTemplateImageUrl(body.imageUrl)) {
+    return NextResponse.json({ error: "Invalid imageUrl" }, { status: 400 })
   }
 
   const template = await prisma.template.upsert({

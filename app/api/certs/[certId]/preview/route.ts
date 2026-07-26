@@ -5,6 +5,7 @@ import QRCode from "qrcode"
 import {
   buildProceduralTemplate,
   calcScaledFontSize,
+  safeNum,
   type AdditionalPlaceholder,
 } from "@/lib/certificate-generator"
 
@@ -130,8 +131,8 @@ export async function GET(_req: Request, { params }: Props) {
   const additionalSvg = additionalPlaceholders.length > 0
     ? Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   ${additionalPlaceholders.map(p => `  <text
-    x="${p.x}" y="${p.y}" dominant-baseline="middle"
-    font-family="${escapeXml(p.font)}" font-size="${p.fontSize}px"
+    x="${safeNum(p.x, 0)}" y="${safeNum(p.y, 0)}" dominant-baseline="middle"
+    font-family="${escapeXml(p.font)}" font-size="${safeNum(p.fontSize, 14)}px"
     fill="${escapeXml(p.color)}">${escapeXml(p.value)}</text>`).join("\n")}
 </svg>`)
     : null

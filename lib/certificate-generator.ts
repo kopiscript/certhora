@@ -81,6 +81,16 @@ function escapeXml(s: string): string {
     .replace(/'/g, "&apos;")
 }
 
+// Coerces a value used as a bare (unescaped) numeric SVG attribute. Unlike the scalar
+// Template columns (Prisma-typed Float, rejected at the DB layer if non-numeric),
+// `Template.additional` is a Json column — its per-placeholder x/y/fontSize are
+// attacker-controllable strings unless coerced here, which would otherwise allow
+// breaking out of the SVG attribute and injecting arbitrary markup.
+export function safeNum(n: unknown, fallback: number): number {
+  const num = typeof n === "number" ? n : Number(n)
+  return Number.isFinite(num) ? num : fallback
+}
+
 // ─── SVG overlays ─────────────────────────────────────────────────────────────
 
 function buildNameSVG(
@@ -275,11 +285,11 @@ function buildAdditionalsSVG(
   if (placeholders.length === 0) return Buffer.from(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg"/>`)
 
   const texts = placeholders.map(p => `  <text
-    x="${p.x}"
-    y="${p.y}"
+    x="${safeNum(p.x, 0)}"
+    y="${safeNum(p.y, 0)}"
     dominant-baseline="middle"
     font-family="${escapeXml(p.font)}"
-    font-size="${p.fontSize}px"
+    font-size="${safeNum(p.fontSize, 14)}px"
     fill="${escapeXml(p.color)}"
   >${escapeXml(p.value)}</text>`).join("\n")
 

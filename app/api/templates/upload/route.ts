@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { uploadToR2 } from "@/lib/r2"
+import { validateAndNormalizeImage } from "@/lib/validate-image"
 
 const MAX_BYTES = 5 * 1024 * 1024
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"])
@@ -28,7 +29,12 @@ export async function POST(req: Request) {
 
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg"
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const buffer = Buffer.from(await file.arrayBuffer())
+  const rawBuffer = Buffer.from(await file.arrayBuffer())
+
+  const buffer = await validateAndNormalizeImage(rawBuffer, file.type)
+  if (!buffer) {
+    return NextResponse.json({ error: "File is not a valid image of the declared type" }, { status: 400 })
+  }
 
   const url = await uploadToR2(`templates/${filename}`, buffer, file.type)
 

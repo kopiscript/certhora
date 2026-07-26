@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createHmac, timingSafeEqual } from "crypto"
 import { prisma } from "@/lib/prisma"
+import { rateLimit, clientIp } from "@/lib/rate-limit"
 
 // Billplz signs callbacks with: sort all fields except x_signature by key (ascending),
 // concatenate as `${key}${value}` with "|" between pairs, then HMAC-SHA256 hex with the
@@ -25,25 +26,28 @@ function verifyBillplzSignature(fields: Record<string, unknown>): boolean {
 }
 
 export async function POST(req: Request) {
+  if (!rateLimit(`billing-callback:${clientIp(req)}`, 30, 60 * 1000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 })
+  }
+
   const contentType = req.headers.get("content-type") ?? ""
   const fields = contentType.includes("application/json")
     ? await req.json()
     : Object.fromEntries(new URLSearchParams(await req.text()))
 
-  // Mock checkout (lib/billplz.ts mock mode) posts {billcode, status, refno} directly.
-  // Real Billplz webhooks post {id, reference_1, paid, paid_amount, ...} instead — reference_1
+  // Real Billplz webhooks post {id, reference_1, paid, paid_amount, ...} — reference_1
   // carries our billcode since Billplz has no concept of an external reference of its own.
-  const isBillplzWebhook = fields.id !== undefined && fields.reference_1 !== undefined
+  if (fields.id === undefined || fields.reference_1 === undefined) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
+  }
 
-  if (isBillplzWebhook && !verifyBillplzSignature(fields)) {
+  if (!verifyBillplzSignature(fields)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
   }
 
-  const billcode = (isBillplzWebhook ? fields.reference_1 : fields.billcode) as string | undefined
-  const status = isBillplzWebhook
-    ? (fields.paid === "true" || fields.paid === true ? "SUCCESS" : "FAILED")
-    : (fields.status as string | undefined)
-  const refno = isBillplzWebhook ? ((fields.id as string | undefined) ?? null) : ((fields.refno as string | undefined) ?? null)
+  const billcode = fields.reference_1 as string | undefined
+  const status = fields.paid === "true" || fields.paid === true ? "SUCCESS" : "FAILED"
+  const refno = (fields.id as string | undefined) ?? null
 
   if (!billcode || !status) {
     return NextResponse.json({ error: "Missing billcode or status" }, { status: 400 })

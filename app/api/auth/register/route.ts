@@ -3,8 +3,13 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  if (!rateLimit(`register:${clientIp(req)}`, 10, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many signup attempts — please try again later" }, { status: 429 });
+  }
+
   const { orgName, organizerCd, email, password, socialLink } = await req.json();
 
   if (!orgName?.trim()) {

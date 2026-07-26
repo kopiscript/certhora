@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   CreditCard, Calendar, ChevronRight, Check,
   X, Download, Receipt, TrendingUp, Crown, Clock,
@@ -80,29 +81,6 @@ function fmtDate(iso: string) {
   return new Intl.DateTimeFormat('en-MY', {
     day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(iso))
-}
-
-function downloadReceipt(txn: Transaction) {
-  const lines = [
-    '─────────────────────────────────',
-    '          CERTHORA RECEIPT        ',
-    '─────────────────────────────────',
-    `Transaction ID : ${txn.billcode}`,
-    `Reference No   : ${txn.refno ?? '—'}`,
-    `Date           : ${fmtDate(txn.createdAt)}`,
-    `Plan           : ${txn.tierRequested}`,
-    `Amount         : RM ${Number(txn.amount).toFixed(2)}`,
-    `Status         : ${TXN_STATUS[txn.status].label}`,
-    '─────────────────────────────────',
-    'Thank you for using Certhora.',
-  ]
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `receipt-${txn.billcode}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -617,14 +595,16 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
 
                         {/* Actions */}
                         <td style={{ padding: '14px 20px', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                          <button
-                            onClick={() => downloadReceipt(txn)}
-                            title="Download receipt"
+                          <Link
+                            href={`/dashboard/billing/receipt/${txn.id}`}
+                            target="_blank"
+                            title="View receipt"
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 5,
                               height: 28, padding: '0 10px', borderRadius: 7,
                               border: '1px solid var(--ct-border)', background: 'transparent',
                               color: 'var(--ct-text-3)', fontSize: 11, cursor: 'pointer',
+                              textDecoration: 'none',
                               transition: 'border-color 150ms, color 150ms',
                             }}
                             onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ct-blue)'; e.currentTarget.style.color = '#93C5FD' }}
@@ -632,7 +612,7 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
                           >
                             <Download size={11} />
                             Receipt
-                          </button>
+                          </Link>
                         </td>
                       </tr>
                     )
