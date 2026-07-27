@@ -61,6 +61,8 @@ const nextConfig: NextConfig = {
     "ws",
     "bcryptjs",
     "@aws-sdk/client-s3",
+    "sharp",
+    "@resvg/resvg-js",
   ],
   async headers() {
     return [

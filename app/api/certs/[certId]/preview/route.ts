@@ -8,6 +8,7 @@ import {
   safeNum,
   type AdditionalPlaceholder,
 } from "@/lib/certificate-generator"
+import { rasterizeSvg } from "@/lib/fonts/embed"
 
 interface Props { params: Promise<{ certId: string }> }
 
@@ -59,20 +60,20 @@ export async function GET(_req: Request, { params }: Props) {
       : tpl.imageUrl
     const res = await fetch(url)
     if (!res.ok) {
-      templatePng = await sharp(buildProceduralTemplate({
+      templatePng = buildProceduralTemplate({
         eventName: cert.event.eventName,
         organizerName: cert.event.organizer.orgName,
         primaryColor: tpl?.primaryColor ?? "#1D4ED8",
-      })).png().toBuffer()
+      })
     } else {
       templatePng = await sharp(Buffer.from(await res.arrayBuffer())).png().toBuffer()
     }
   } else {
-    templatePng = await sharp(buildProceduralTemplate({
+    templatePng = buildProceduralTemplate({
       eventName: cert.event.eventName,
       organizerName: cert.event.organizer.orgName,
       primaryColor: tpl?.primaryColor ?? "#1D4ED8",
-    })).png().toBuffer()
+    })
   }
 
   // ── Layout ────────────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ export async function GET(_req: Request, { params }: Props) {
 
   // ── Name SVG ──────────────────────────────────────────────────────────────
   const fontSize = calcScaledFontSize(cert.participantName, nameFontSize, nameMaxWidth)
-  const nameSvg = Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  const nameSvg = rasterizeSvg(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   <text x="${nameCenterX}" y="${nameY}" text-anchor="middle" dominant-baseline="middle"
         font-family="${escapeXml(nameFont)}" font-size="${fontSize}px"
         font-weight="bold" fill="${escapeXml(nameColor)}">${escapeXml(cert.participantName)}</text>
@@ -103,7 +104,7 @@ export async function GET(_req: Request, { params }: Props) {
   // ── Cert ID SVG ───────────────────────────────────────────────────────────
   const certIdX = qrX + qrSize / 2
   const certIdY = qrY + qrSize + 18
-  const certIdSvg = Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  const certIdSvg = rasterizeSvg(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   <text x="${certIdX}" y="${certIdY}" text-anchor="middle"
         font-family="${escapeXml(certIdFont)}" font-size="11px"
         fill="${escapeXml(certIdColor)}" letter-spacing="1">CERT ID: ${escapeXml(cert.certId)}</text>
@@ -116,20 +117,21 @@ export async function GET(_req: Request, { params }: Props) {
   // ── Skills + dates SVG (procedural template only) ────────────────────────
   const skills = (cert.event.skills as string[]) ?? []
   const skillLine = skills.slice(0, 5).join("   ·   ")
-  const extraSvg = !tpl?.imageUrl ? Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  const proceduralFont = "Arial, Helvetica, sans-serif"
+  const extraSvg = !tpl?.imageUrl ? rasterizeSvg(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   ${skillLine ? `<text x="${W / 2}" y="490" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#2563EB" letter-spacing="1">
+        font-family="${proceduralFont}" font-size="13" fill="#2563EB" letter-spacing="1">
     ${escapeXml(skillLine)}</text>` : ""}
-  <text x="60" y="678" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#94A3B8" letter-spacing="2">EVENT DATE</text>
-  <text x="60" y="698" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#475569">${escapeXml(fmt(cert.event.eventDate))}</text>
-  <text x="60" y="722" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#94A3B8" letter-spacing="2">ISSUED ON</text>
-  <text x="60" y="742" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#475569">${escapeXml(fmt(cert.createdAt))}</text>
+  <text x="60" y="678" font-family="${proceduralFont}" font-size="10" fill="#94A3B8" letter-spacing="2">EVENT DATE</text>
+  <text x="60" y="698" font-family="${proceduralFont}" font-size="14" font-weight="bold" fill="#475569">${escapeXml(fmt(cert.event.eventDate))}</text>
+  <text x="60" y="722" font-family="${proceduralFont}" font-size="10" fill="#94A3B8" letter-spacing="2">ISSUED ON</text>
+  <text x="60" y="742" font-family="${proceduralFont}" font-size="14" font-weight="bold" fill="#475569">${escapeXml(fmt(cert.createdAt))}</text>
 </svg>`) : null
 
   // ── Additional placeholders ───────────────────────────────────────────────
   const additionalPlaceholders = (tpl?.additional ?? []) as unknown as AdditionalPlaceholder[]
   const additionalSvg = additionalPlaceholders.length > 0
-    ? Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    ? rasterizeSvg(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   ${additionalPlaceholders.map(p => `  <text
     x="${safeNum(p.x, 0)}" y="${safeNum(p.y, 0)}" dominant-baseline="middle"
     font-family="${escapeXml(p.font)}" font-size="${safeNum(p.fontSize, 14)}px"

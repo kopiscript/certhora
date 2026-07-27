@@ -1,5 +1,6 @@
 import sharp from "sharp"
 import QRCode from "qrcode"
+import { rasterizeSvg } from "./fonts/embed"
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ function buildNameSVG(
   >${escapeXml(name)}</text>
 </svg>`
 
-  return Buffer.from(svg)
+  return rasterizeSvg(svg)
 }
 
 function buildCertIdSVG(
@@ -140,7 +141,7 @@ function buildCertIdSVG(
   >CERT ID: ${escapeXml(certId)}</text>
 </svg>`
 
-  return Buffer.from(svg)
+  return rasterizeSvg(svg)
 }
 
 // ─── QR generation ────────────────────────────────────────────────────────────
@@ -203,6 +204,8 @@ export function buildProceduralTemplate(opts: {
     height = 840,
   } = opts
 
+  const proceduralFont = "Arial, Helvetica, sans-serif"
+
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="${width}" height="${height}" fill="#FAFBFF"/>
   <rect width="${width}" height="108" fill="${escapeXml(primaryColor)}"/>
@@ -224,26 +227,26 @@ export function buildProceduralTemplate(opts: {
 
   <!-- Header -->
   <text x="${width / 2}" y="52" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif"
+        font-family="${proceduralFont}"
         font-size="11" fill="rgba(255,255,255,0.7)" letter-spacing="5">
     CERTIFICATE OF COMPLETION
   </text>
   <text x="${width / 2}" y="83" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif"
+        font-family="${proceduralFont}"
         font-size="20" font-weight="bold" fill="white">
     ${escapeXml(eventName)}
   </text>
 
   <!-- Organiser -->
   <text x="${width / 2}" y="152" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif"
+        font-family="${proceduralFont}"
         font-size="11" fill="#94A3B8" letter-spacing="4">
     ISSUED BY  ${escapeXml(organizerName.toUpperCase())}
   </text>
 
   <!-- Lead-in -->
   <text x="${width / 2}" y="232" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif"
+        font-family="${proceduralFont}"
         font-size="16" fill="#94A3B8" font-style="italic">
     This is to certify that
   </text>
@@ -256,7 +259,7 @@ export function buildProceduralTemplate(opts: {
 
   <!-- "has successfully completed" -->
   <text x="${width / 2}" y="445" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif"
+        font-family="${proceduralFont}"
         font-size="16" fill="#94A3B8" font-style="italic">
     has successfully completed the programme
   </text>
@@ -266,13 +269,13 @@ export function buildProceduralTemplate(opts: {
 
   <!-- Footer bar text -->
   <text x="${width / 2}" y="${height - 18}" text-anchor="middle"
-        font-family="Arial, Helvetica, sans-serif"
+        font-family="${proceduralFont}"
         font-size="10" fill="rgba(255,255,255,0.55)" letter-spacing="3">
     CERTHORA.COM  ·  VERIFIED DIGITAL CERTIFICATE
   </text>
 </svg>`
 
-  return Buffer.from(svg)
+  return rasterizeSvg(svg)
 }
 
 // ─── Additional placeholders SVG ─────────────────────────────────────────────
@@ -282,7 +285,7 @@ function buildAdditionalsSVG(
   canvasH: number,
   placeholders: AdditionalPlaceholder[]
 ): Buffer {
-  if (placeholders.length === 0) return Buffer.from(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg"/>`)
+  if (placeholders.length === 0) return rasterizeSvg(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg"/>`)
 
   const texts = placeholders.map(p => `  <text
     x="${safeNum(p.x, 0)}"
@@ -293,7 +296,7 @@ function buildAdditionalsSVG(
     fill="${escapeXml(p.color)}"
   >${escapeXml(p.value)}</text>`).join("\n")
 
-  return Buffer.from(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg">
+  return rasterizeSvg(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg">
 ${texts}
 </svg>`)
 }
