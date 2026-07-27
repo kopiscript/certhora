@@ -37,8 +37,14 @@ export function AppSidebar({ orgName, email, tier }: AppSidebarProps) {
       style={{ background: "var(--card)", borderColor: "var(--ct-border)" }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 h-16 border-b shrink-0" style={{ borderColor: "var(--ct-border)" }}>
-        <Image src="/certhoralogo.svg" alt="" width={28} height={28} className="h-7 w-7 shrink-0" />
+      <div className="group flex items-center gap-2.5 px-5 h-16 border-b shrink-0" style={{ borderColor: "var(--ct-border)" }}>
+        <Image
+          src="/certhoralogo.svg"
+          alt=""
+          width={28}
+          height={28}
+          className="h-7 w-7 shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-6"
+        />
         <span className="text-foreground font-semibold tracking-tight text-sm">Certhora</span>
       </div>
 
@@ -50,15 +56,31 @@ export function AppSidebar({ orgName, email, tier }: AppSidebarProps) {
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors"
+              className="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ease-out"
               style={{
                 background: active ? "var(--ct-blue-dim)" : "transparent",
                 color: active ? "#93C5FD" : "var(--ct-text-2)",
                 borderLeft: active ? "2px solid var(--ct-blue)" : "2px solid transparent",
               }}
+              onMouseEnter={e => {
+                if (active) return
+                e.currentTarget.style.background = "var(--ct-surface-2)"
+                e.currentTarget.style.color = "var(--ct-text)"
+              }}
+              onMouseLeave={e => {
+                if (active) return
+                e.currentTarget.style.background = "transparent"
+                e.currentTarget.style.color = "var(--ct-text-2)"
+              }}
             >
-              <Icon size={15} strokeWidth={active ? 2.5 : 1.8} />
-              {label}
+              <Icon
+                size={15}
+                strokeWidth={active ? 2.5 : 1.8}
+                className="shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-0.5"
+              />
+              <span className="transition-transform duration-200 ease-out group-hover:translate-x-0.5">
+                {label}
+              </span>
             </Link>
           )
         })}
@@ -81,12 +103,12 @@ export function AppSidebar({ orgName, email, tier }: AppSidebarProps) {
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors"
+          className="group flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs transition-colors duration-200 ease-out"
           style={{ color: "var(--ct-text-3)" }}
           onMouseEnter={e => (e.currentTarget.style.color = "var(--ct-error)")}
           onMouseLeave={e => (e.currentTarget.style.color = "var(--ct-text-3)")}
         >
-          <LogOut size={13} />
+          <LogOut size={13} className="transition-transform duration-200 ease-out group-hover:-translate-x-0.5" />
           Sign out
         </button>
       </div>
