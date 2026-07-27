@@ -64,6 +64,22 @@ const nextConfig: NextConfig = {
     "sharp",
     "@resvg/resvg-js",
   ],
+  // @resvg/resvg-js (and sharp) ship platform-specific native binaries loaded via a
+  // dynamic require() keyed off process.platform/arch — Next's build-time file tracer
+  // can't statically detect that and may omit them from the deployed serverless
+  // function, causing the native binding to silently fail at runtime. Force-include
+  // every platform's binary so this doesn't depend on guessing the deploy target.
+  outputFileTracingIncludes: {
+    "/*": [
+      "node_modules/@resvg/resvg-js-linux-x64-gnu/**/*",
+      "node_modules/@resvg/resvg-js-linux-x64-musl/**/*",
+      "node_modules/@resvg/resvg-js-linux-arm64-gnu/**/*",
+      "node_modules/@resvg/resvg-js-linux-arm64-musl/**/*",
+      "node_modules/@resvg/resvg-js-darwin-x64/**/*",
+      "node_modules/@resvg/resvg-js-darwin-arm64/**/*",
+      "node_modules/sharp/**/*",
+    ],
+  },
   async headers() {
     return [
       {
