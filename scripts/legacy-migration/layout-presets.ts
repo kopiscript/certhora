@@ -1,12 +1,19 @@
 // Derived from the old PHP app's certs/cert_layout/layoutN.php files, which positioned
-// name/QR/cert-ID overlays as mm-offsets or percentages against a 297x210mm (A4 landscape)
-// canvas rendered client-side via html2canvas. The new app composites server-side onto a
-// 1200x840px canvas, so every mm/percentage value here is converted with SCALE = 1200/297,
-// applied uniformly to both axes (matching how the old code derived a single `scale` from
-// container width alone). These are approximations, not pixel-perfect — the old system used
-// top-left/right/bottom anchors and CSS centering that don't map 1:1 onto the new schema's
-// center-anchored (nameCenterX/nameY) and top-left-anchored (qrX/qrY) fields. Organizers can
-// nudge positions in the template editor after migration if anything looks off.
+// name/QR/cert-ID overlays against a 297x210mm (A4 landscape) canvas rendered client-side
+// via html2canvas. Two kinds of units were used, and they must be handled differently:
+//
+//   - mm-offsets (e.g. "top=80mm", "width=41mm") — the old JS derived a single scale
+//     factor `containerWidth / 297` and multiplied every mm value by it, for BOTH axes.
+//   - CSS percentages (e.g. "top: 50%", "left: 50%") — these are plain percentages of the
+//     container's own height/width respectively, already resolution-independent.
+//
+// Real uploaded certificate backgrounds vary wildly in actual pixel dimensions (seen in
+// this migration: 757x567 up to 3250x2298) — none of them are 1200x840. A position
+// hardcoded against a fixed 1200x840 assumption lands in the wrong *relative* spot on any
+// image that isn't exactly that size (e.g. nameCenterX=600 sits at 50% of a 1200px-wide
+// canvas, but only ~18% from the left of a 3250px-wide one). So every function here takes
+// the *actual* template image's width/height and computes positions relative to that,
+// instead of baking in a fixed canvas size.
 
 export interface LayoutPreset {
   nameCenterX: number
@@ -16,72 +23,118 @@ export interface LayoutPreset {
   qrX: number
   qrY: number
   qrSize: number
+  // Only layout5 had a second styled overlay (the "others" field — a per-certificate
+  // paper title/committee role, sourced from certificates.others), positioned below the
+  // name. Undefined for every other layout.
+  others?: { centerX: number; y: number; maxWidth: number; fontSize: number }
 }
 
-const CANVAS_W = 1200
-const CANVAS_H = 840
-const SCALE = CANVAS_W / 297 // ≈ 4.0404
+// mm-offsets are always scaled off the *width* (matching the old app's single-scale-factor
+// behavior), since containers maintained a ~297:210 aspect ratio and the old code derived
+// its one `scale` from width alone, applying it to both axes.
+function mmScale(canvasW: number): number {
+  return canvasW / 297
+}
 
-export const LAYOUT_PRESETS: Record<string, LayoutPreset> = {
-  layout1: {
-    // top-left anchored in the original; no width was set for the name box, so centerX
-    // is approximated as the left offset itself rather than a true visual center.
-    nameCenterX: Math.round(15.5 * SCALE),
-    nameY: Math.round(80 * SCALE),
-    nameMaxWidth: 840,
-    nameFontSize: Math.round(8 * SCALE),
-    qrX: Math.round(15.8 * SCALE),
-    qrY: Math.round(CANVAS_H - 24.6 * SCALE - 41 * SCALE),
-    qrSize: Math.round(41 * SCALE),
+type LayoutFn = (canvasW: number, canvasH: number) => LayoutPreset
+
+const LAYOUT_FNS: Record<string, LayoutFn> = {
+  layout1: (canvasW, canvasH) => {
+    const s = mmScale(canvasW)
+    const qrSize = Math.round(41 * s)
+    return {
+      // top-left anchored in the original with no width set for the name box, so centerX
+      // is approximated as the left offset itself rather than a true visual center.
+      nameCenterX: Math.round(15.5 * s),
+      nameY: Math.round(80 * s),
+      nameMaxWidth: Math.round(canvasW * 0.7),
+      nameFontSize: Math.round(8 * s),
+      qrX: Math.round(15.8 * s),
+      qrY: Math.round(canvasH - 24.6 * s - qrSize),
+      qrSize,
+    }
   },
-  layout2: {
-    nameCenterX: CANVAS_W / 2,
-    nameY: CANVAS_H / 2,
-    nameMaxWidth: 1100,
-    nameFontSize: Math.round(8 * SCALE),
-    qrX: Math.round(CANVAS_W / 2 - (41 * SCALE) / 2),
-    qrY: Math.round(CANVAS_H - 0.099 * CANVAS_H - 41 * SCALE),
-    qrSize: Math.round(41 * SCALE),
+  layout2: (canvasW, canvasH) => {
+    const s = mmScale(canvasW)
+    const qrSize = Math.round(41 * s)
+    return {
+      nameCenterX: Math.round(canvasW * 0.5),
+      nameY: Math.round(canvasH * 0.5),
+      nameMaxWidth: Math.round(canvasW * 0.92),
+      nameFontSize: Math.round(8 * s),
+      qrX: Math.round(canvasW * 0.5 - qrSize / 2),
+      qrY: Math.round(canvasH - canvasH * 0.099 - qrSize),
+      qrSize,
+    }
   },
-  layout3: {
-    nameCenterX: Math.round(21 * SCALE + (180 * SCALE) / 2),
-    nameY: Math.round(86 * SCALE),
-    nameMaxWidth: Math.round(180 * SCALE),
-    nameFontSize: Math.round(8 * SCALE),
-    qrX: Math.round(CANVAS_W - 27.5 * SCALE - 31 * SCALE),
-    qrY: Math.round(CANVAS_H - 14.9 * SCALE - 31 * SCALE),
-    qrSize: Math.round(31 * SCALE),
+  layout3: (canvasW, canvasH) => {
+    const s = mmScale(canvasW)
+    const qrSize = Math.round(31 * s)
+    const nameMaxWidth = Math.round(180 * s)
+    return {
+      nameCenterX: Math.round(21 * s + nameMaxWidth / 2),
+      nameY: Math.round(86 * s),
+      nameMaxWidth,
+      nameFontSize: Math.round(8 * s),
+      qrX: Math.round(canvasW - 27.5 * s - qrSize),
+      qrY: Math.round(canvasH - 14.9 * s - qrSize),
+      qrSize,
+    }
   },
-  layout5: {
-    nameCenterX: CANVAS_W / 2,
-    nameY: Math.round(0.41 * CANVAS_H),
-    nameMaxWidth: 1100,
-    nameFontSize: Math.round(6 * SCALE),
-    qrX: Math.round(CANVAS_W - 27.5 * SCALE - 31 * SCALE),
-    qrY: Math.round(CANVAS_H - 14.9 * SCALE - 31 * SCALE),
-    qrSize: Math.round(31 * SCALE),
+  layout5: (canvasW, canvasH) => {
+    const s = mmScale(canvasW)
+    const qrSize = Math.round(31 * s)
+    return {
+      nameCenterX: Math.round(canvasW * 0.5),
+      nameY: Math.round(canvasH * 0.41),
+      nameMaxWidth: Math.round(canvasW * 0.92),
+      nameFontSize: Math.round(6 * s),
+      qrX: Math.round(canvasW - 27.5 * s - qrSize),
+      qrY: Math.round(canvasH - 14.9 * s - qrSize),
+      qrSize,
+      // .others-overlay: top=56.5%, left=50% centered, width=280mm, fontSize=5mm —
+      // shares the name's font/color/bold/uppercase styling (see cert-layout-analysis.md).
+      others: {
+        centerX: Math.round(canvasW * 0.5),
+        y: Math.round(canvasH * 0.565),
+        maxWidth: Math.round(280 * s),
+        fontSize: Math.round(5 * s),
+      },
+    }
   },
-  layout6: {
-    nameCenterX: CANVAS_W / 2,
-    nameY: CANVAS_H / 2,
-    nameMaxWidth: 1150,
-    nameFontSize: Math.round(8 * SCALE),
-    qrX: Math.round(CANVAS_W - 27.5 * SCALE - 31 * SCALE),
-    qrY: Math.round(CANVAS_H - 14.9 * SCALE - 31 * SCALE),
-    qrSize: Math.round(31 * SCALE),
+  layout6: (canvasW, canvasH) => {
+    const s = mmScale(canvasW)
+    const qrSize = Math.round(31 * s)
+    return {
+      nameCenterX: Math.round(canvasW * 0.5),
+      nameY: Math.round(canvasH * 0.5),
+      nameMaxWidth: Math.round(canvasW * 0.96),
+      nameFontSize: Math.round(8 * s),
+      qrX: Math.round(canvasW - 27.5 * s - qrSize),
+      qrY: Math.round(canvasH - 14.9 * s - qrSize),
+      qrSize,
+    }
   },
-  layout7: {
-    nameCenterX: CANVAS_W / 2,
-    nameY: Math.round(0.45 * CANVAS_H),
-    nameMaxWidth: 1150,
-    nameFontSize: Math.round(8 * SCALE),
-    qrX: Math.round(CANVAS_W - 27.5 * SCALE - 31 * SCALE),
-    qrY: Math.round(CANVAS_H - 14.9 * SCALE - 31 * SCALE),
-    qrSize: Math.round(31 * SCALE),
+  layout7: (canvasW, canvasH) => {
+    const s = mmScale(canvasW)
+    const qrSize = Math.round(31 * s)
+    return {
+      nameCenterX: Math.round(canvasW * 0.5),
+      nameY: Math.round(canvasH * 0.45),
+      nameMaxWidth: Math.round(canvasW * 0.96),
+      nameFontSize: Math.round(8 * s),
+      qrX: Math.round(canvasW - 27.5 * s - qrSize),
+      qrY: Math.round(canvasH - 14.9 * s - qrSize),
+      qrSize,
+    }
   },
 }
 
-// Sensible fallback for any layout_path value that doesn't match a known preset.
+// Fallback for when we don't yet know the real image dimensions (e.g. no custom background
+// was ever uploaded — the event uses the app's own 1200x840 procedural template, for which
+// these numbers are exactly right) or the layout_path doesn't match a known preset.
+const DEFAULT_CANVAS_W = 1200
+const DEFAULT_CANVAS_H = 840
 export const DEFAULT_LAYOUT: LayoutPreset = {
   nameCenterX: 600,
   nameY: 340,
@@ -92,7 +145,16 @@ export const DEFAULT_LAYOUT: LayoutPreset = {
   qrSize: 140,
 }
 
-export function resolveLayout(layoutPath: string | null | undefined): LayoutPreset {
-  if (!layoutPath) return DEFAULT_LAYOUT
-  return LAYOUT_PRESETS[layoutPath.trim().toLowerCase()] ?? DEFAULT_LAYOUT
+// canvasW/canvasH should be the *actual* template image's pixel dimensions when a real
+// background is being wired up (read via sharp metadata at upload time). Omit them when
+// there's no custom image — the event uses the app's own 1200x840 procedural template,
+// for which DEFAULT_LAYOUT's fixed numbers are exactly right.
+export function resolveLayout(
+  layoutPath: string | null | undefined,
+  canvasW?: number,
+  canvasH?: number
+): LayoutPreset {
+  if (canvasW === undefined || canvasH === undefined) return DEFAULT_LAYOUT
+  const fn = (layoutPath && LAYOUT_FNS[layoutPath.trim().toLowerCase()]) || LAYOUT_FNS.layout2
+  return fn(canvasW, canvasH)
 }

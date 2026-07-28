@@ -34,6 +34,13 @@ export interface AdditionalPlaceholder {
   fontSize: number
   color: string
   font: string
+  align?: "start" | "middle" | "end"
+  bold?: boolean
+  // When set, text wraps onto multiple lines (see wrapNameText) instead of overflowing
+  // past this width on a single line — needed for longer per-certificate values like a
+  // paper title. Left unset, existing placeholders keep their original single-line
+  // behavior unchanged.
+  maxWidth?: number
 }
 
 export interface URLConfig {
@@ -44,6 +51,10 @@ export interface URLConfig {
 export interface ParticipantInput {
   certId: string
   name: string
+  // Per-certificate values keyed by AdditionalPlaceholder.id, substituted in place of
+  // that placeholder's static `value` at render time (e.g. a per-participant paper title
+  // or committee role, positioned/styled by the shared Template placeholder config).
+  dynamicValues?: Record<string, string>
 }
 
 export interface CertificateOutput {
@@ -69,6 +80,51 @@ export function calcScaledFontSize(
   if (estimated <= maxWidth) return defaultFontSize
   const scaled = Math.floor(maxWidth / (name.length * CHAR_WIDTH_RATIO))
   return Math.max(scaled, MIN_FONT_SIZE)
+}
+
+// A handful of certificates (e.g. multi-author research exhibition entries) have names
+// long enough that shrinking to a single line either becomes illegible or — once it hits
+// MIN_FONT_SIZE — overflows the name box outright, since raw SVG <text> never wraps on its
+// own the way an HTML element would. Wraps onto up to MAX_NAME_LINES lines, preferring the
+// largest font size that still fits within that line budget over shrinking further.
+const MAX_NAME_LINES = 3
+const LINE_HEIGHT_RATIO = 1.15
+
+export interface WrappedName {
+  fontSize: number
+  lines: string[]
+}
+
+function greedyWrap(words: string[], maxCharsPerLine: number): string[] {
+  const lines: string[] = []
+  let current = ""
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word
+    if (candidate.length <= maxCharsPerLine || !current) {
+      current = candidate
+    } else {
+      lines.push(current)
+      current = word
+    }
+  }
+  if (current) lines.push(current)
+  return lines
+}
+
+export function wrapNameText(name: string, defaultFontSize: number, maxWidth: number): WrappedName {
+  const words = name.split(/\s+/).filter(Boolean)
+  if (words.length <= 1) return { fontSize: defaultFontSize, lines: [name] }
+
+  for (let fontSize = defaultFontSize; fontSize >= MIN_FONT_SIZE; fontSize--) {
+    const maxCharsPerLine = Math.max(1, Math.floor(maxWidth / (fontSize * CHAR_WIDTH_RATIO)))
+    const lines = greedyWrap(words, maxCharsPerLine)
+    if (lines.length <= MAX_NAME_LINES) return { fontSize, lines }
+  }
+
+  // Even at the smallest allowed font size it needs more than MAX_NAME_LINES — accept
+  // that as the best available fit rather than shrinking below a legible size.
+  const maxCharsPerLine = Math.max(1, Math.floor(maxWidth / (MIN_FONT_SIZE * CHAR_WIDTH_RATIO)))
+  return { fontSize: MIN_FONT_SIZE, lines: greedyWrap(words, maxCharsPerLine) }
 }
 
 // ─── XML escape ───────────────────────────────────────────────────────────────
@@ -100,19 +156,23 @@ function buildNameSVG(
   name: string,
   layout: NameLayout
 ): Buffer {
-  const fontSize = calcScaledFontSize(name, layout.defaultFontSize, layout.maxWidth)
+  const { fontSize, lines } = wrapNameText(name, layout.defaultFontSize, layout.maxWidth)
+  const lineHeight = fontSize * LINE_HEIGHT_RATIO
+  const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
+
+  const tspans = lines
+    .map((line, i) => `<tspan x="${layout.centerX}" y="${firstLineY + i * lineHeight}">${escapeXml(line)}</tspan>`)
+    .join("")
 
   const svg = `<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg">
   <text
-    x="${layout.centerX}"
-    y="${layout.y}"
     text-anchor="middle"
     dominant-baseline="middle"
     font-family="${escapeXml(layout.nameFont)}"
     font-size="${fontSize}px"
     font-weight="bold"
     fill="${escapeXml(layout.nameColor)}"
-  >${escapeXml(name)}</text>
+  >${tspans}</text>
 </svg>`
 
   return rasterizeSvg(svg)
@@ -283,18 +343,39 @@ export function buildProceduralTemplate(opts: {
 function buildAdditionalsSVG(
   canvasW: number,
   canvasH: number,
-  placeholders: AdditionalPlaceholder[]
+  placeholders: AdditionalPlaceholder[],
+  dynamicValues?: Record<string, string>
 ): Buffer {
   if (placeholders.length === 0) return rasterizeSvg(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg"/>`)
 
-  const texts = placeholders.map(p => `  <text
-    x="${safeNum(p.x, 0)}"
-    y="${safeNum(p.y, 0)}"
+  const texts = placeholders.map(p => {
+    const value = dynamicValues?.[p.id] ?? p.value
+    if (!value) return ""
+    const fontSize = safeNum(p.fontSize, 14)
+    const x = safeNum(p.x, 0)
+    const y = safeNum(p.y, 0)
+    const commonAttrs = `text-anchor="${p.align ?? "middle"}" font-family="${escapeXml(p.font)}" ${p.bold ? 'font-weight="bold"' : ""} fill="${escapeXml(p.color)}"`
+
+    // A designated maxWidth means this value can be long enough to need wrapping (e.g. a
+    // per-certificate paper title) rather than overflowing past the box on one line.
+    if (p.maxWidth) {
+      const wrapped = wrapNameText(value, fontSize, safeNum(p.maxWidth, 400))
+      const lineHeight = wrapped.fontSize * LINE_HEIGHT_RATIO
+      const firstLineY = y - ((wrapped.lines.length - 1) * lineHeight) / 2
+      const tspans = wrapped.lines
+        .map((line, i) => `<tspan x="${x}" y="${firstLineY + i * lineHeight}">${escapeXml(line)}</tspan>`)
+        .join("")
+      return `  <text dominant-baseline="middle" font-size="${wrapped.fontSize}px" ${commonAttrs}>${tspans}</text>`
+    }
+
+    return `  <text
+    x="${x}"
+    y="${y}"
     dominant-baseline="middle"
-    font-family="${escapeXml(p.font)}"
-    font-size="${safeNum(p.fontSize, 14)}px"
-    fill="${escapeXml(p.color)}"
-  >${escapeXml(p.value)}</text>`).join("\n")
+    font-size="${fontSize}px"
+    ${commonAttrs}
+  >${escapeXml(value)}</text>`
+  }).filter(Boolean).join("\n")
 
   return rasterizeSvg(`<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg">
 ${texts}
@@ -332,7 +413,7 @@ export async function generateCertificateImage(
   ]
 
   if (additional.length > 0) {
-    layers.push({ input: buildAdditionalsSVG(width, height, additional), top: 0, left: 0 })
+    layers.push({ input: buildAdditionalsSVG(width, height, additional, participant.dynamicValues), top: 0, left: 0 })
   }
 
   const imageBuffer = await sharp(templateBuffer)

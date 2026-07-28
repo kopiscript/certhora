@@ -52,7 +52,7 @@ export async function POST(
   // ── Pending participants ──────────────────────────────────────────────────
   const pendingCerts = await prisma.certificate.findMany({
     where: { eventCode, emailStatus: "PENDING" },
-    select: { certId: true, participantName: true },
+    select: { certId: true, participantName: true, metadata: true },
   })
   if (pendingCerts.length === 0) {
     return NextResponse.json({ error: "No pending participants for this event" }, { status: 404 })
@@ -137,7 +137,14 @@ export async function POST(
   try {
     outputs = await generateCertificateBatch(
       templateBuffer,
-      pendingCerts.map(c => ({ certId: c.certId, name: c.participantName })),
+      pendingCerts.map(c => {
+        const metadata = c.metadata as Record<string, unknown> | null
+        return {
+          certId: c.certId,
+          name: c.participantName,
+          dynamicValues: metadata?.others ? { others: String(metadata.others) } : undefined,
+        }
+      }),
       nameLayout,
       qrLayout,
       design,

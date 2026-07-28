@@ -38,7 +38,7 @@ export default async function CertViewPage({ params }: Props) {
       event: {
         include: {
           organizer: { select: { orgName: true, socialLink: true } },
-          template: { select: { primaryColor: true } },
+          template: { select: { primaryColor: true, updatedAt: true } },
         },
       },
     },
@@ -62,6 +62,12 @@ export default async function CertViewPage({ params }: Props) {
   const expiryDate = fmt(event.expiryDate)
   const isExpired = event.expiryDate ? new Date() > event.expiryDate : false
   const primaryColor = event.template?.primaryColor ?? '#1D4ED8'
+  // Cache-busts the rendered preview image whenever the template's layout/styling
+  // changes — otherwise a browser that already cached /preview (max-age=300) keeps
+  // showing the pre-edit position for up to 5 minutes after the organizer fixes it.
+  const templateVersion = event.template?.updatedAt
+    ? event.template.updatedAt.getTime()
+    : new Date(event.createdAt).getTime()
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--ct-bg)' }}>
@@ -168,6 +174,7 @@ export default async function CertViewPage({ params }: Props) {
               hasBadge={event.hasBadge}
               badgeUrl={event.badgeUrl}
               primaryColor={primaryColor}
+              templateVersion={templateVersion}
             />
             <FeedbackForm
               eventCode={event.eventCode}

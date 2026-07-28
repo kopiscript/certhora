@@ -55,3 +55,4 @@ scratch/
 scripts/legacy-migration/*.csv
 scripts/legacy-migration/*.log
 scripts/legacy-migration/archive-*.json
+scripts/legacy-migration/assets/

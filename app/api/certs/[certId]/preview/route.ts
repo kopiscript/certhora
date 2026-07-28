@@ -4,7 +4,7 @@ import sharp from "sharp"
 import QRCode from "qrcode"
 import {
   buildProceduralTemplate,
-  calcScaledFontSize,
+  wrapNameText,
   safeNum,
   type AdditionalPlaceholder,
 } from "@/lib/certificate-generator"
@@ -94,11 +94,18 @@ export async function GET(_req: Request, { params }: Props) {
   const H = meta.height ?? 840
 
   // ── Name SVG ──────────────────────────────────────────────────────────────
-  const fontSize = calcScaledFontSize(cert.participantName, nameFontSize, nameMaxWidth)
+  // Wraps onto multiple lines (rather than only shrinking on one) for names too long to
+  // fit legibly on a single line — see lib/certificate-generator.ts#wrapNameText.
+  const { fontSize, lines: nameLines } = wrapNameText(cert.participantName, nameFontSize, nameMaxWidth)
+  const nameLineHeight = fontSize * 1.15
+  const nameFirstLineY = nameY - ((nameLines.length - 1) * nameLineHeight) / 2
+  const nameTspans = nameLines
+    .map((line, i) => `<tspan x="${nameCenterX}" y="${nameFirstLineY + i * nameLineHeight}">${escapeXml(line)}</tspan>`)
+    .join("")
   const nameSvg = rasterizeSvg(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
-  <text x="${nameCenterX}" y="${nameY}" text-anchor="middle" dominant-baseline="middle"
+  <text text-anchor="middle" dominant-baseline="middle"
         font-family="${escapeXml(nameFont)}" font-size="${fontSize}px"
-        font-weight="bold" fill="${escapeXml(nameColor)}">${escapeXml(cert.participantName)}</text>
+        font-weight="bold" fill="${escapeXml(nameColor)}">${nameTspans}</text>
 </svg>`)
 
   // ── Cert ID SVG ───────────────────────────────────────────────────────────
@@ -129,13 +136,43 @@ export async function GET(_req: Request, { params }: Props) {
 </svg>`) : null
 
   // ── Additional placeholders ───────────────────────────────────────────────
+  // Per-certificate values (e.g. a paper title/committee role stored in
+  // Certificate.metadata) override a placeholder's static value at render time,
+  // keyed by placeholder id — same convention as lib/certificate-generator.ts.
+  const certMetadata = cert.metadata as Record<string, unknown> | null
+  const dynamicValues: Record<string, string> | undefined = certMetadata?.others
+    ? { others: String(certMetadata.others) }
+    : undefined
   const additionalPlaceholders = (tpl?.additional ?? []) as unknown as AdditionalPlaceholder[]
-  const additionalSvg = additionalPlaceholders.length > 0
+  const additionalTexts = additionalPlaceholders
+    .map(p => {
+      const value = dynamicValues?.[p.id] ?? p.value
+      if (!value) return ""
+      const fontSize = safeNum(p.fontSize, 14)
+      const x = safeNum(p.x, 0)
+      const y = safeNum(p.y, 0)
+      const commonAttrs = `text-anchor="${p.align ?? "middle"}" font-family="${escapeXml(p.font)}" ${p.bold ? 'font-weight="bold"' : ""} fill="${escapeXml(p.color)}"`
+
+      // Long per-certificate values (e.g. a paper title) wrap onto multiple lines instead
+      // of overflowing past the box on one — same convention as buildAdditionalsSVG.
+      if (p.maxWidth) {
+        const wrapped = wrapNameText(value, fontSize, safeNum(p.maxWidth, 400))
+        const lineHeight = wrapped.fontSize * 1.15
+        const firstLineY = y - ((wrapped.lines.length - 1) * lineHeight) / 2
+        const tspans = wrapped.lines
+          .map((line, i) => `<tspan x="${x}" y="${firstLineY + i * lineHeight}">${escapeXml(line)}</tspan>`)
+          .join("")
+        return `  <text dominant-baseline="middle" font-size="${wrapped.fontSize}px" ${commonAttrs}>${tspans}</text>`
+      }
+
+      return `  <text
+    x="${x}" y="${y}" dominant-baseline="middle"
+    font-size="${fontSize}px" ${commonAttrs}>${escapeXml(value)}</text>`
+    })
+    .filter(Boolean)
+  const additionalSvg = additionalTexts.length > 0
     ? rasterizeSvg(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
-  ${additionalPlaceholders.map(p => `  <text
-    x="${safeNum(p.x, 0)}" y="${safeNum(p.y, 0)}" dominant-baseline="middle"
-    font-family="${escapeXml(p.font)}" font-size="${safeNum(p.fontSize, 14)}px"
-    fill="${escapeXml(p.color)}">${escapeXml(p.value)}</text>`).join("\n")}
+${additionalTexts.join("\n")}
 </svg>`)
     : null
 
