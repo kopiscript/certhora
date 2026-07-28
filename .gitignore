@@ -48,3 +48,10 @@ MARKETING_STRATEGY.md
 PROMOTION.md
 
 /.claude/
+
+# legacy data migration — contains real password hashes / PII, never commit
+certhora_kybolwaz.csv
+scratch/
+scripts/legacy-migration/*.csv
+scripts/legacy-migration/*.log
+scripts/legacy-migration/archive-*.json
