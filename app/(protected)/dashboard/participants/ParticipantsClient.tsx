@@ -18,6 +18,7 @@ export interface CertRow {
   eventCode: string
   emailStatus: EmailStatus
   createdAt: string
+  certUrl: string
 }
 
 export interface EventOption {
@@ -27,7 +28,7 @@ export interface EventOption {
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
-export const MOCK_CERTS: CertRow[] = [
+export const MOCK_CERTS: CertRow[] = ([
   { certId: 'ABC123DEF456', participantName: 'Ahmad Faris',       participantEmail: 'ahmad.faris@gmail.com',    eventCode: 'GDG2025',   emailStatus: 'SENT',    createdAt: '2025-03-15T10:30:00Z' },
   { certId: 'XYZ789GHI012', participantName: 'Nurul Aina',        participantEmail: 'nurul.aina@outlook.com',   eventCode: 'GDG2025',   emailStatus: 'SENT',    createdAt: '2025-03-15T10:31:00Z' },
   { certId: 'MNO345PQR678', participantName: 'Muhammad Haziq',    participantEmail: 'haziq@yahoo.com',          eventCode: 'GDG2025',   emailStatus: 'PENDING', createdAt: '2025-03-15T10:32:00Z' },
@@ -53,7 +54,7 @@ export const MOCK_CERTS: CertRow[] = [
   { certId: 'ZAB012CDE345', participantName: 'Amira Sofea',       participantEmail: 'amira.sofea@email.com',    eventCode: 'HACKUTM25', emailStatus: 'SENT',    createdAt: '2025-05-10T15:00:00Z' },
   { certId: 'FGH678IJK901', participantName: 'Arif Syahmi',       participantEmail: 'arif.syahmi@yahoo.com',    eventCode: 'CT2026',    emailStatus: 'PENDING', createdAt: '2025-06-01T09:00:00Z' },
   { certId: 'LMN234OPQ567', participantName: 'Shafiqah Hayati',   participantEmail: 'shafiqah.h@outlook.com',   eventCode: 'GDG2025',   emailStatus: 'FAILED',  createdAt: '2025-03-15T12:00:00Z' },
-]
+] as Omit<CertRow, 'certUrl'>[]).map(row => ({ ...row, certUrl: `https://certhora.com/certs/view/${row.certId}` }))
 
 const MOCK_EVENTS: EventOption[] = [
   { eventCode: 'GDG2025',   eventName: 'GDG Kuala Lumpur 2025' },
@@ -92,10 +93,12 @@ function fmtDate(iso: string) {
 }
 
 function buildCsv(rows: CertRow[]) {
-  const headers = ['Cert ID', 'Name', 'Email', 'Event Code', 'Email Status', 'Created At']
+  // Certificate Link lets organizers on plans without email delivery still hand out
+  // certs in bulk — export the sheet and share the link column directly.
+  const headers = ['Cert ID', 'Name', 'Email', 'Event Code', 'Email Status', 'Created At', 'Certificate Link']
   const lines = rows.map(r => [
     r.certId, r.participantName, r.participantEmail,
-    r.eventCode, r.emailStatus, fmtDate(r.createdAt),
+    r.eventCode, r.emailStatus, fmtDate(r.createdAt), r.certUrl,
   ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
   return [headers.join(','), ...lines].join('\n')
 }
