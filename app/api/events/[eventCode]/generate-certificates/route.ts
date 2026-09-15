@@ -2,18 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { uploadToR2 } from "@/lib/r2"
-import {
-  generateCertificateBatch,
-  buildProceduralTemplate,
-  type NameLayout,
-  type QRLayout,
-  type CertDesign,
-  type URLConfig,
-  type AdditionalPlaceholder,
-} from "@/lib/certificate-generator"
-import sharp from "sharp"
-import { applyPendingTierChange, applyExpiredSubscription } from "@/lib/billing"
+import { generatePendingCertificates } from "@/lib/generate-certificates"
 
 export async function POST(
   _req: Request,
@@ -24,176 +13,32 @@ export async function POST(
 
   const { eventCode } = await params
 
-  let organizer = await prisma.organizer.findUnique({
+  const organizer = await prisma.organizer.findUnique({
     where: { userId: session.user.id },
-    select: { organizerCd: true, certQuota: true },
+    select: { organizerCd: true },
   })
   if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
 
-  await applyPendingTierChange(organizer.organizerCd)
-  await applyExpiredSubscription(organizer.organizerCd)
-  organizer = await prisma.organizer.findUnique({
-    where: { organizerCd: organizer.organizerCd },
-    select: { organizerCd: true, certQuota: true },
-  })
-  if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
-
-  const event = await prisma.event.findUnique({
-    where: { eventCode },
-    include: {
-      organizer: { select: { orgName: true } },
-      template: true,   // 1-to-1, eventCode PK
-    },
-  })
+  const event = await prisma.event.findUnique({ where: { eventCode }, select: { organizerCd: true } })
   if (!event || event.organizerCd !== organizer.organizerCd) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 })
   }
 
-  // ── Pending participants ──────────────────────────────────────────────────
-  const pendingCerts = await prisma.certificate.findMany({
-    where: { eventCode, emailStatus: "PENDING" },
-    select: { certId: true, participantName: true, metadata: true },
-  })
-  if (pendingCerts.length === 0) {
+  const pendingCount = await prisma.certificate.count({ where: { eventCode, emailStatus: "PENDING" } })
+  if (pendingCount === 0) {
     return NextResponse.json({ error: "No pending participants for this event" }, { status: 404 })
   }
 
-  // ── Quota guard ───────────────────────────────────────────────────────────
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  const usedThisMonth = await prisma.certificate.count({
-    where: {
-      event: { organizerCd: organizer.organizerCd },
-      createdAt: { gte: monthStart },
-      emailStatus: { not: "PENDING" },
-    },
-  })
-  const remaining = organizer.certQuota - usedThisMonth
-  if (pendingCerts.length > remaining) {
-    return NextResponse.json(
-      { error: `Quota exceeded. ${remaining} remaining, ${pendingCerts.length} requested.`, remaining },
-      { status: 422 }
-    )
+  const outcome = await generatePendingCertificates(eventCode, organizer.organizerCd)
+  if (outcome.error) {
+    const status = outcome.error.startsWith("Quota exceeded") ? 422 : 400
+    return NextResponse.json({ error: outcome.error }, { status })
   }
-
-  // ── Build template buffer ─────────────────────────────────────────────────
-  let templateBuffer: Buffer
-
-  if (event.template?.imageUrl) {
-    // Fetch uploaded template image
-    try {
-      const res = await fetch(
-        event.template.imageUrl.startsWith("/")
-          ? `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}${event.template.imageUrl}`
-          : event.template.imageUrl
-      )
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const svgOrImage = Buffer.from(await res.arrayBuffer())
-      templateBuffer = await sharp(svgOrImage).png().toBuffer()
-    } catch (err) {
-      return NextResponse.json(
-        { error: `Failed to load template image: ${(err as Error).message}` },
-        { status: 400 }
-      )
-    }
-  } else {
-    // Procedural template
-    const svg = buildProceduralTemplate({
-      eventName: event.eventName,
-      organizerName: event.organizer.orgName,
-      primaryColor: event.template?.primaryColor ?? "#1D4ED8",
-    })
-    templateBuffer = await sharp(svg).png().toBuffer()
-  }
-
-  // ── Layout config (from template or defaults) ─────────────────────────────
-  const tpl = event.template
-  const nameLayout: NameLayout = {
-    centerX:       tpl?.nameCenterX  ?? 600,
-    y:             tpl?.nameY        ?? 340,
-    maxWidth:      tpl?.nameMaxWidth ?? 840,
-    defaultFontSize: tpl?.nameFontSize ?? 52,
-    nameFont:      tpl?.nameFont     ?? "Arial, Helvetica, sans-serif",
-    nameColor:     tpl?.nameColor    ?? "#1E293B",
-  }
-  const qrLayout: QRLayout = {
-    x:    tpl?.qrX    ?? 1010,
-    y:    tpl?.qrY    ?? 628,
-    size: tpl?.qrSize ?? 140,
-  }
-  const design: CertDesign = {
-    certIdFont:   tpl?.certIdFont   ?? "monospace",
-    certIdColor:  tpl?.certIdColor  ?? "#64748B",
-    showWatermark: tpl?.showWatermark ?? false,
-  }
-  const urlConfig: URLConfig = {
-    baseUrl:      process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-    viewPageName: "view",
-  }
-
-  const additional = (tpl?.additional ?? []) as unknown as AdditionalPlaceholder[]
-
-  // ── Generate ──────────────────────────────────────────────────────────────
-  let outputs
-  try {
-    outputs = await generateCertificateBatch(
-      templateBuffer,
-      pendingCerts.map(c => {
-        const metadata = c.metadata as Record<string, unknown> | null
-        return {
-          certId: c.certId,
-          name: c.participantName,
-          dynamicValues: metadata?.others ? { others: String(metadata.others) } : undefined,
-        }
-      }),
-      nameLayout,
-      qrLayout,
-      design,
-      urlConfig,
-      undefined,
-      5,
-      additional
-    )
-  } catch (err) {
-    return NextResponse.json(
-      { error: `Generation failed: ${(err as Error).message}` },
-      { status: 500 }
-    )
-  }
-
-  // ── Upload certificate images to R2 ──────────────────────────────────────
-  // A `v` cache-busting param is appended because the R2 key is stable per
-  // certId — without it, CDN/browser caches would keep serving the
-  // pre-update image after a template layout change.
-  const uploadedAt = new Date()
-  const imageUrls = await Promise.all(
-    outputs.map(async o => {
-      const url = await uploadToR2(`certificates/${o.certId}.png`, o.imageBuffer, "image/png")
-      return `${url}?v=${uploadedAt.getTime()}`
-    })
-  )
-
-  // ── Persist — update status to QUEUED ────────────────────────────────────
-  // Neon's HTTP driver doesn't support `$transaction` in any form, so these
-  // independent per-row updates run concurrently instead.
-  await Promise.all(
-    outputs.map((o, i) =>
-      prisma.certificate.update({
-        where: { certId: o.certId },
-        data: { emailStatus: "QUEUED", queuedAt: uploadedAt, imageUrl: imageUrls[i] },
-      })
-    )
-  )
-
-  // Also mark event as ACTIVE
-  await prisma.event.update({
-    where: { eventCode },
-    data: { status: "ACTIVE", issuedDate: new Date() },
-  })
 
   return NextResponse.json({
     success: true,
     eventCode,
-    generated: outputs.length,
-    results: outputs.map(o => ({ certId: o.certId, name: o.name, qrUrl: o.qrUrl })),
+    generated: outcome.generated,
+    results: outcome.results,
   })
 }

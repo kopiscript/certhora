@@ -15,6 +15,7 @@ export function SendEmailsButton({
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState({ sent: 0, remaining: 0 })
   const [error, setError] = useState("")
 
   const disabled = !canSendEmails || resendableCount === 0 || loading
@@ -23,10 +24,19 @@ export function SendEmailsButton({
     if (disabled) return
     setLoading(true)
     setError("")
+    let totalSent = 0
     try {
-      const res = await fetch(`/api/events/${eventCode}/send-emails`, { method: "POST" })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      // Each request only sends a capped batch (Vercel function time limit),
+      // so keep calling until the queue is empty — the organizer only clicks once.
+      for (let i = 0; i < 50; i++) {
+        const res = await fetch(`/api/events/${eventCode}/send-emails`, { method: "POST" })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        if (data.sent === 0 && data.generateError) throw new Error(data.generateError)
+        totalSent += data.sent
+        setProgress({ sent: totalSent, remaining: data.remaining })
+        if (data.remaining === 0) break
+      }
       router.refresh()
     } catch (err) {
       setError((err as Error).message)
@@ -52,7 +62,7 @@ export function SendEmailsButton({
       }}
     >
       {loading
-        ? <><Loader2 size={14} className="animate-spin" /> Sending...</>
+        ? <><Loader2 size={14} className="animate-spin" /> Sending... ({progress.sent} sent{progress.remaining > 0 ? `, ${progress.remaining} left` : ""})</>
         : <><Send size={14} /> {canSendEmails ? `Send Emails (${resendableCount})` : "Pro Only: Send Emails"}</>}
     </button>
   )

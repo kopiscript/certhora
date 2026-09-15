@@ -1,21 +1,15 @@
 import "server-only"
-import nodemailer from "nodemailer"
+import { Resend } from "resend"
 
 const globalForMailer = globalThis as unknown as {
-  mailer: nodemailer.Transporter | undefined
+  resend: Resend | undefined
 }
 
-function getTransporter() {
-  if (!globalForMailer.mailer) {
-    const port = Number(process.env.SMTP_PORT ?? 587)
-    globalForMailer.mailer = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port,
-      secure: port === 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    })
+function getResend() {
+  if (!globalForMailer.resend) {
+    globalForMailer.resend = new Resend(process.env.RESEND_API_KEY)
   }
-  return globalForMailer.mailer
+  return globalForMailer.resend
 }
 
 export interface CertificateEmailOptions {
@@ -28,8 +22,8 @@ export interface CertificateEmailOptions {
 export async function sendCertificateEmail(to: string, opts: CertificateEmailOptions) {
   const { participantName, eventName, orgName, certUrl } = opts
 
-  await getTransporter().sendMail({
-    from: process.env.SMTP_FROM,
+  const { error } = await getResend().emails.send({
+    from: process.env.RESEND_FROM ?? process.env.SMTP_FROM ?? "Certhora <no-reply@certhora.com>",
     to,
     subject: `Your certificate for ${eventName} is ready`,
     text:
@@ -51,6 +45,10 @@ export async function sendCertificateEmail(to: string, opts: CertificateEmailOpt
       </div>
     `,
   })
+
+  if (error) {
+    throw new Error(`Resend send failed: ${error.message}`)
+  }
 }
 
 function escapeHtml(s: string): string {

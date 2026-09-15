@@ -394,6 +394,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
   // ── Send emails (per-event bulk, or a manual cross-event selection) ───────────
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
+  const [sendProgress, setSendProgress] = useState({ sent: 0, remaining: 0 })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   // Keep rows in sync with initialCerts prop changes
@@ -438,7 +439,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
 
   const queuedForEvent = useMemo(
     () => eventFilter
-      ? rows.filter(r => r.eventCode === eventFilter && ['QUEUED', 'FAILED', 'BOUNCED'].includes(r.emailStatus)).length
+      ? rows.filter(r => r.eventCode === eventFilter && ['PENDING', 'QUEUED', 'FAILED', 'BOUNCED'].includes(r.emailStatus)).length
       : 0,
     [rows, eventFilter]
   )
@@ -473,15 +474,25 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
     if (!canSendEmails || sending) return
 
     if (selectedCount > 0) {
-      setSending(true); setSendError('')
+      setSending(true); setSendError(''); setSendProgress({ sent: 0, remaining: 0 })
+      const ids = Array.from(selectedIds)
+      let totalSent = 0
       try {
-        const res = await fetch('/api/participants/send-emails', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ certIds: Array.from(selectedIds) }),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error)
+        // Each request only sends a capped batch (Vercel function time limit),
+        // so keep calling until the queue is empty — one click drains it all.
+        for (let i = 0; i < 50; i++) {
+          const res = await fetch('/api/participants/send-emails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ certIds: ids }),
+          })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error)
+          if (data.sent === 0 && data.generateErrors?.length) throw new Error(data.generateErrors.join('; '))
+          totalSent += data.sent
+          setSendProgress({ sent: totalSent, remaining: data.remaining })
+          if (data.remaining === 0) break
+        }
         setSelectedIds(new Set())
         router.refresh()
       } catch (err) {
@@ -493,11 +504,18 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
     }
 
     if (!eventFilter || queuedForEvent === 0) return
-    setSending(true); setSendError('')
+    setSending(true); setSendError(''); setSendProgress({ sent: 0, remaining: 0 })
+    let totalSent = 0
     try {
-      const res = await fetch(`/api/events/${eventFilter}/send-emails`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      for (let i = 0; i < 50; i++) {
+        const res = await fetch(`/api/events/${eventFilter}/send-emails`, { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        if (data.sent === 0 && data.generateError) throw new Error(data.generateError)
+        totalSent += data.sent
+        setSendProgress({ sent: totalSent, remaining: data.remaining })
+        if (data.remaining === 0) break
+      }
       router.refresh()
     } catch (err) {
       setSendError((err as Error).message)
@@ -559,7 +577,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
                 {!canSendEmails
                   ? <><Send size={14} /> Pro Only: Send Emails</>
                   : sending
-                    ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</>
+                    ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Sending… ({sendProgress.sent} sent{sendProgress.remaining > 0 ? `, ${sendProgress.remaining} left` : ''})</>
                     : selectedCount > 0
                       ? <><Send size={14} /> Send Selected ({selectedCount})</>
                       : <><Send size={14} /> Send Emails{eventFilter ? ` (${queuedForEvent})` : ''}</>}

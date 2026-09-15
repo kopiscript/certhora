@@ -69,7 +69,8 @@ export default async function EventDetailPage({ params }: Props) {
   const sentCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "SENT").length
   const queuedCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "QUEUED").length
   const resendableCount = event.certificates.filter(
-    (c: typeof event.certificates[number]) => c.emailStatus === "QUEUED" || c.emailStatus === "FAILED" || c.emailStatus === "BOUNCED"
+    (c: typeof event.certificates[number]) =>
+      c.emailStatus === "PENDING" || c.emailStatus === "QUEUED" || c.emailStatus === "FAILED" || c.emailStatus === "BOUNCED"
   ).length
 
   const avgScore = feedback.length

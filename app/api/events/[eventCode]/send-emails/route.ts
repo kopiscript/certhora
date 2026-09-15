@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendQueuedCertificates } from "@/lib/send-certificates"
+import { generatePendingCertificates } from "@/lib/generate-certificates"
 import { tierCanEmailParticipants } from "@/lib/tiers"
 
 const BATCH_CAP = 20
@@ -33,8 +34,13 @@ export async function POST(
     return NextResponse.json({ error: "Event not found" }, { status: 404 })
   }
 
+  // Auto-generate any not-yet-generated participants first, so organizers
+  // don't have to click "Generate Certificates" before sending. Best-effort:
+  // a quota error here still lets already-QUEUED certs get sent below.
+  const genOutcome = await generatePendingCertificates(eventCode, organizer.organizerCd)
+
   const result = await sendQueuedCertificates({ eventCode }, BATCH_CAP)
-  return NextResponse.json(result)
+  return NextResponse.json({ ...result, generated: genOutcome.generated, generateError: genOutcome.error })
 }
 
 

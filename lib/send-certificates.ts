@@ -15,6 +15,7 @@ export interface SendResult {
   attempted: number
   sent: number
   failed: number
+  remaining: number
 }
 
 export async function sendQueuedCertificates(
@@ -66,5 +67,9 @@ export async function sendQueuedCertificates(
     await new Promise(r => setTimeout(r, SEND_DELAY_MS))
   }
 
-  return { attempted: certs.length, sent, failed }
+  const remaining = await prisma.certificate.count({
+    where: { ...where, emailStatus: { in: RESENDABLE_STATUSES } },
+  })
+
+  return { attempted: certs.length, sent, failed, remaining }
 }

@@ -77,15 +77,17 @@ export async function POST(req: Request, { params }: Props) {
     attempts++
   }
 
-  await prisma.certificate.createMany({
-    data: participants.map((p, i) => ({
-      certId: certIds[i],
-      participantName: p.name.trim(),
-      participantEmail: p.email.trim().toLowerCase(),
-      eventCode,
-      emailStatus: "PENDING" as const,
-    })),
-  })
+  for (const [i, p] of participants.entries()) {
+    await prisma.certificate.create({
+      data: {
+        certId: certIds[i],
+        participantName: p.name.trim(),
+        participantEmail: p.email.trim().toLowerCase(),
+        eventCode,
+        emailStatus: "PENDING" as const,
+      },
+    })
+  }
 
   return NextResponse.json({ added: participants.length }, { status: 201 })
 }
