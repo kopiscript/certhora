@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
 const r2 = new S3Client({
   region: "auto",
@@ -25,4 +25,8 @@ export async function uploadToR2(
     })
   )
   return `${process.env.R2_PUBLIC_URL}/${key}`
+}
+
+export async function deleteFromR2(key: string): Promise<void> {
+  await r2.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: key }))
 }

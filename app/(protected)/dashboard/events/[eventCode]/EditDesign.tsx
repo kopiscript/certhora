@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Pencil, Loader2, Check, X } from "lucide-react"
+import { Pencil, Loader2, Check, X, AlertCircle } from "lucide-react"
 import { TemplateEditor, type TemplateLayout, DEFAULT_LAYOUT, type AdditionalPlaceholder } from "@/components/template-editor/TemplateEditor"
+
+const AUTOSAVE_DELAY_MS = 800
 
 interface TemplateData {
   eventCode: string
@@ -33,7 +35,7 @@ interface Props {
 export function EditDesign({ eventCode, template }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [error, setError] = useState("")
 
   const initialLayout: TemplateLayout = {
@@ -56,36 +58,43 @@ export function EditDesign({ eventCode, template }: Props) {
   const [layout, setLayout] = useState<TemplateLayout>(initialLayout)
   const [imageUrl, setImageUrl] = useState<string | null>(template?.imageUrl ?? null)
 
-  const handleChange = useCallback((l: TemplateLayout, img: string | null) => {
-    setLayout(l)
-    setImageUrl(img)
-  }, [])
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const skipNextRef = useRef(true) // TemplateEditor fires onChange once on mount — don't autosave that
 
-  const handleSave = async () => {
-    setSaving(true)
+  const persist = useCallback(async (l: TemplateLayout, img: string | null) => {
+    setStatus("saving")
     setError("")
     try {
       const res = await fetch(`/api/events/${eventCode}/template`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...layout, imageUrl }),
+        body: JSON.stringify({ ...l, imageUrl: img }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setOpen(false)
+      setStatus("saved")
       router.refresh()
     } catch (err) {
       setError((err as Error).message)
-    } finally {
-      setSaving(false)
+      setStatus("error")
     }
-  }
+  }, [eventCode, router])
+
+  const handleChange = useCallback((l: TemplateLayout, img: string | null) => {
+    setLayout(l)
+    setImageUrl(img)
+    if (skipNextRef.current) { skipNextRef.current = false; return }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => persist(l, img), AUTOSAVE_DELAY_MS)
+  }, [persist])
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
 
   return (
     <div>
       {!open ? (
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => { skipNextRef.current = true; setOpen(true) }}
           style={{
             display: "flex", alignItems: "center", gap: 6,
             height: 34, padding: "0 14px",
@@ -108,12 +117,24 @@ export function EditDesign({ eventCode, template }: Props) {
             }}>
               Certificate Design
             </p>
-            <div style={{ display: "flex", gap: 8 }}>
-              {error && (
-                <p style={{ fontSize: 12, color: "var(--ct-error)", alignSelf: "center" }}>{error}</p>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              {status === "saving" && (
+                <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ct-text-3)" }}>
+                  <Loader2 size={13} className="animate-spin" /> Saving…
+                </span>
+              )}
+              {status === "saved" && (
+                <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#22C55E" }}>
+                  <Check size={13} /> Saved
+                </span>
+              )}
+              {status === "error" && (
+                <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--ct-error)" }}>
+                  <AlertCircle size={13} /> {error || "Save failed"}
+                </span>
               )}
               <button
-                onClick={() => { setOpen(false); setError("") }}
+                onClick={() => setOpen(false)}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
                   height: 34, padding: "0 14px",
@@ -121,23 +142,14 @@ export function EditDesign({ eventCode, template }: Props) {
                   borderRadius: 7, fontSize: 12, color: "var(--ct-text-2)", cursor: "pointer",
                 }}
               >
-                <X size={13} /> Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  height: 34, padding: "0 14px",
-                  background: "var(--ct-blue)", border: "none",
-                  borderRadius: 7, fontSize: 12, color: "white", cursor: "pointer",
-                  opacity: saving ? 0.7 : 1,
-                }}
-              >
-                {saving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : <><Check size={13} /> Save Design</>}
+                <X size={13} /> Done
               </button>
             </div>
           </div>
+
+          <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginBottom: 16, marginTop: -12 }}>
+            Changes save automatically as you drag or edit.
+          </p>
 
           <TemplateEditor
             initial={layout}

@@ -199,19 +199,6 @@ export default async function EventDetailPage({ params }: Props) {
           <BadgeUpload eventCode={eventCode} currentBadgeUrl={event.badgeUrl ?? null} />
         )}
 
-        {/* ── Quota notice ────────────────────────────────────────────── */}
-        {pendingCount > 0 && pendingCount > quotaRemaining && (
-          <div style={{
-            padding: "10px 14px", background: "var(--ct-error-bg)",
-            border: "1px solid var(--ct-error-border)", borderRadius: 8,
-            fontSize: 13, color: "var(--ct-error)",
-          }}>
-            Quota exceeded — {quotaRemaining} remaining, {pendingCount} pending.
-            Upgrade your plan to generate all certificates.
-          </div>
-        )}
-
-        
         {!canSendEmails && (
           <div style={{
             padding: "10px 14px", background: "rgba(96,165,250,0.08)",
@@ -233,6 +220,19 @@ export default async function EventDetailPage({ params }: Props) {
             </p>
             <AddParticipantsButton eventCode={eventCode} />
           </div>
+
+          {pendingCount > 0 && (
+            <div style={{
+              padding: "8px 12px", marginBottom: 10,
+              background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)",
+              borderRadius: 8, fontSize: 12, color: "#FCD34D",
+            }}>
+              {pendingCount} participant{pendingCount === 1 ? "" : "s"} not generated yet.{" "}
+              {canSendEmails
+                ? "Click Send Emails above to generate and send in one step, or Generate Certificates to only create the images."
+                : "Click Generate Certificates above to create their certificate images."}
+            </div>
+          )}
           <div style={{
             background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
             borderRadius: 10, overflow: "hidden",

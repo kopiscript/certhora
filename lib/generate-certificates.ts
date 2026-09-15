@@ -4,6 +4,8 @@ import { uploadToR2 } from "@/lib/r2"
 import {
   generateCertificateBatch,
   buildProceduralTemplate,
+  CERT_W,
+  CERT_H,
   type NameLayout,
   type QRLayout,
   type CertDesign,
@@ -12,6 +14,26 @@ import {
 } from "@/lib/certificate-generator"
 import sharp from "sharp"
 import { applyPendingTierChange, applyExpiredSubscription } from "@/lib/billing"
+
+// Maps a participant's CSV-supplied extra columns (Certificate.metadata, keyed by
+// raw column header) onto the template's text placeholders by matching column
+// header to placeholder label case-insensitively — e.g. a "Track" column fills
+// a placeholder labeled "Track". Falls back to the placeholder's static value
+// when no matching column was supplied.
+function buildDynamicValues(
+  metadata: unknown,
+  placeholders: AdditionalPlaceholder[]
+): Record<string, string> | undefined {
+  if (!metadata || typeof metadata !== "object" || placeholders.length === 0) return undefined
+
+  const entries = Object.entries(metadata as Record<string, unknown>)
+  const dynamicValues: Record<string, string> = {}
+  for (const ph of placeholders) {
+    const match = entries.find(([key]) => key.trim().toLowerCase() === ph.label.trim().toLowerCase())
+    if (match && match[1]) dynamicValues[ph.id] = String(match[1])
+  }
+  return Object.keys(dynamicValues).length > 0 ? dynamicValues : undefined
+}
 
 export interface GenerateOutcome {
   generated: number
@@ -83,7 +105,13 @@ export async function generatePendingCertificates(
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const svgOrImage = Buffer.from(await res.arrayBuffer())
-      templateBuffer = await sharp(svgOrImage).png().toBuffer()
+      // Normalize to the canonical canvas so overlay coordinates (stored in
+      // 1200×840 space by the template editor) land in the right spot
+      // regardless of the uploaded image's native resolution.
+      templateBuffer = await sharp(svgOrImage)
+        .resize(CERT_W, CERT_H, { fit: "cover" })
+        .png()
+        .toBuffer()
     } catch (err) {
       return { generated: 0, results: [], error: `Failed to load template image: ${(err as Error).message}` }
     }
@@ -128,14 +156,11 @@ export async function generatePendingCertificates(
   try {
     outputs = await generateCertificateBatch(
       templateBuffer,
-      pendingCerts.map(c => {
-        const metadata = c.metadata as Record<string, unknown> | null
-        return {
-          certId: c.certId,
-          name: c.participantName,
-          dynamicValues: metadata?.others ? { others: String(metadata.others) } : undefined,
-        }
-      }),
+      pendingCerts.map(c => ({
+        certId: c.certId,
+        name: c.participantName,
+        dynamicValues: buildDynamicValues(c.metadata, additional),
+      })),
       nameLayout,
       qrLayout,
       design,

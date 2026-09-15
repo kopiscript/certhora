@@ -2,6 +2,14 @@ import sharp from "sharp"
 import QRCode from "qrcode"
 import { rasterizeSvg } from "./fonts/embed"
 
+// Canonical certificate canvas. The template editor's drag positions (nameCenterX,
+// nameY, qrX, qrY, ...) are stored in this coordinate space, so every uploaded
+// background must be normalized to exactly this size before overlays are
+// composited onto it — otherwise element positions land in the wrong spot
+// whenever the uploaded image's native resolution differs from 1200×840.
+export const CERT_W = 1200
+export const CERT_H = 840
+
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface NameLayout {

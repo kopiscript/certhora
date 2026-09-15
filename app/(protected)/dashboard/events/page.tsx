@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import Link from "next/link"
-import { Plus, CalendarDays, Users, CheckCircle, Clock, FileText } from "lucide-react"
+import { Plus, CalendarDays, Users, CheckCircle, Clock, FileText, Info } from "lucide-react"
 import { DuplicateEventButton } from "./DuplicateEventButton"
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
@@ -57,6 +57,21 @@ export default async function EventsPage() {
       </header>
 
       <div className="flex-1 p-8">
+        {/* ── Quick guide ─────────────────────────────────────────────── */}
+        <div style={{
+          display: "flex", gap: 10, padding: "12px 16px", marginBottom: 20,
+          background: "var(--ct-blue-dim)", border: "1px solid rgba(37,99,235,0.18)",
+          borderRadius: 10,
+        }}>
+          <Info size={15} style={{ color: "#93C5FD", flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 12, color: "var(--ct-text-2)", lineHeight: 1.6 }}>
+            <strong style={{ color: "var(--ct-text)" }}>How it works: </strong>
+            Create an event → design the certificate → add participants (manually or via CSV) →
+            click <strong style={{ color: "var(--ct-text)" }}>Send Emails</strong> on the event page.
+            Certificates generate automatically and send in one step — no need to generate first.
+          </p>
+        </div>
+
         {events.length === 0 ? (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",

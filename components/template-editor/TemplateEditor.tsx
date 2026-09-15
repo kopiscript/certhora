@@ -6,6 +6,8 @@ import { nanoid } from "nanoid"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// Must match CERT_W/CERT_H in lib/certificate-generator.ts — that's the canvas
+// uploaded backgrounds get normalized to before overlays are composited.
 const CERT_W = 1200
 const CERT_H = 840
 const DISPLAY_W = 720
@@ -156,9 +158,9 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
       const newGuides: Guide[] = []
       const lyt = layoutRef.current
 
-      // Snap point pools — canvas center + other elements' centers
-      const snapXPts: number[] = [CERT_W / 2]
-      const snapYPts: number[] = [CERT_H / 2]
+      // Snap point pools — canvas center/edges + other elements' positions
+      const snapXPts: number[] = [0, CERT_W / 2, CERT_W]
+      const snapYPts: number[] = [0, CERT_H / 2, CERT_H]
       if (target?.kind !== "name") {
         snapXPts.push(lyt.nameCenterX)
         snapYPts.push(lyt.nameY)
@@ -288,7 +290,7 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
           {displayImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={displayImage} alt="template background"
-              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           ) : (
             <div style={{
               width: "100%", height: "100%",
@@ -405,7 +407,7 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
                 position: "absolute",
                 left: p.x * SCALE,
                 top: p.y * SCALE,
-                transform: "translate(0, -50%)",
+                transform: "translate(-50%, -50%)",
                 cursor: "grab",
                 padding: "2px 6px",
                 border: `1.5px dashed ${selectedId === p.id ? "rgba(234,179,8,0.9)" : "rgba(234,179,8,0.5)"}`,
@@ -423,7 +425,7 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
                 {p.value || p.label}
               </span>
               <div style={{
-                position: "absolute", top: -8, left: 0,
+                position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)",
                 background: "#B45309", borderRadius: 3, padding: "1px 5px",
                 fontSize: 9, color: "white", fontWeight: 600, letterSpacing: 0.5,
                 pointerEvents: "none", whiteSpace: "nowrap",
@@ -551,6 +553,13 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
 
         {/* ── Additional placeholders ────────────────────────────────── */}
         <Section label="Text Placeholders">
+          <p style={{ fontSize: 11, color: "var(--ct-text-3)", lineHeight: 1.5, marginBottom: 2 }}>
+            Same value on every certificate by default. To auto-fill a different value
+            per participant instead, name a placeholder&apos;s <strong>Label</strong>  exactly
+            like a column in your participants CSV (e.g. label it &quot;Track&quot; to match
+            a &quot;Track&quot; column) — matching is case-insensitive.
+          </p>
+
           {layout.additional.length === 0 && (
             <p style={{ fontSize: 12, color: "var(--ct-text-3)" }}>
               Add custom text fields like date, location, or duration.
@@ -584,11 +593,11 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }} onClick={e => e.stopPropagation()}>
                   <Field label="Label">
                     <input value={p.label} onChange={e => updateAdditional(p.id, { label: e.target.value })}
-                      style={{ ...inputStyle, width: "100%" }} />
+                      style={{ ...inputStyle, width: "100%" }} placeholder="Must match a CSV column to auto-fill per person" />
                   </Field>
                   <Field label="Value">
                     <input value={p.value} onChange={e => updateAdditional(p.id, { value: e.target.value })}
-                      style={{ ...inputStyle, width: "100%" }} placeholder="e.g. 15 March 2025" />
+                      style={{ ...inputStyle, width: "100%" }} placeholder="Default / fallback value, e.g. 15 March 2025" />
                   </Field>
                   <TwoCol>
                     <Field label="Font size">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { deleteFromR2 } from '@/lib/r2'
 
 export async function PATCH(
   req: NextRequest,
@@ -46,4 +47,31 @@ export async function PATCH(
   })
 
   return NextResponse.json(updated)
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ certId: string }> }
+) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { certId } = await params
+
+  const organizer = await prisma.organizer.findUnique({
+    where: { userId: session.user.id },
+    select: { organizerCd: true },
+  })
+  if (!organizer) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const cert = await prisma.certificate.findFirst({
+    where: { certId, event: { organizerCd: organizer.organizerCd } },
+    select: { certId: true },
+  })
+  if (!cert) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  await deleteFromR2(`certificates/${certId}.png`)
+  await prisma.certificate.delete({ where: { certId } })
+
+  return NextResponse.json({ success: true })
 }

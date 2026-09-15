@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Search, Download, ChevronDown, ChevronLeft, ChevronRight,
-  Edit2, ExternalLink, X, Check, Loader2, Users, Filter, Send,
+  Edit2, ExternalLink, X, Check, Loader2, Users, Filter, Send, Trash2,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -357,6 +357,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
   const [sendError, setSendError] = useState('')
   const [sendProgress, setSendProgress] = useState({ sent: 0, remaining: 0 })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   // Keep rows in sync with initialCerts prop changes
   useEffect(() => {
@@ -396,6 +397,41 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
     })
     if (!res.ok) throw new Error('Save failed')
     setRows(prev => prev.map(r => r.certId === certId ? { ...r, participantName: name, participantEmail: email } : r))
+  }
+
+  const handleRemove = async (certId: string, participantName: string) => {
+    if (!window.confirm(`Remove ${participantName}? This can't be undone.`)) return
+    const res = await fetch(`/api/participants/${certId}`, { method: 'DELETE' })
+    if (!res.ok) return
+    setRows(prev => prev.filter(r => r.certId !== certId))
+    setSelectedIds(prev => {
+      if (!prev.has(certId)) return prev
+      const next = new Set(prev)
+      next.delete(certId)
+      return next
+    })
+  }
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size
+    if (count === 0) return
+    if (!window.confirm(`Remove ${count} participant${count > 1 ? 's' : ''}? This can't be undone.`)) return
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/participants/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ certIds: Array.from(selectedIds) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setRows(prev => prev.filter(r => !selectedIds.has(r.certId)))
+      setSelectedIds(new Set())
+    } catch (err) {
+      setSendError((err as Error).message)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const queuedForEvent = useMemo(
@@ -545,6 +581,27 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
               </button>
             )
           })()}
+
+          {/* Bulk delete: only shown once something is selected */}
+          {selectedCount > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={deleting}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                height: 36, padding: '0 14px',
+                background: 'transparent', border: '1px solid var(--ct-error)',
+                color: 'var(--ct-error)', borderRadius: 8,
+                fontSize: 13, fontWeight: 500,
+                cursor: deleting ? 'not-allowed' : 'pointer',
+                opacity: deleting ? 0.6 : 1,
+              }}
+            >
+              {deleting
+                ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Removing…</>
+                : <><Trash2 size={14} /> Delete Selected ({selectedCount})</>}
+            </button>
+          )}
 
           {/* Export button */}
           <div ref={exportBtnRef} style={{ position: 'relative' }}>
@@ -797,6 +854,21 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
                       <ExternalLink size={11} />
                       View Cert
                     </a>
+                    <button
+                      onClick={() => handleRemove(row.certId, row.participantName)}
+                      title="Remove participant"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 30, height: 30, marginLeft: 6, borderRadius: 7,
+                        border: '1px solid var(--ct-border)', background: 'transparent',
+                        color: 'var(--ct-text-3)', cursor: 'pointer',
+                        transition: 'border-color 150ms, color 150ms',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ct-error)'; e.currentTarget.style.color = 'var(--ct-error)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--ct-border)'; e.currentTarget.style.color = 'var(--ct-text-3)' }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </td>
                 </tr>
               ))}

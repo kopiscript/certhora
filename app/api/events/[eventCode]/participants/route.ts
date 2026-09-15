@@ -49,7 +49,7 @@ export async function POST(req: Request, { params }: Props) {
   const result = await getOwnedEvent(eventCode, session.user.id)
   if (!result) return NextResponse.json({ error: "Event not found" }, { status: 404 })
 
-  let body: { participants: Array<{ name: string; email: string }> }
+  let body: { participants: Array<{ name: string; email: string; metadata?: Record<string, string> }> }
   try { body = await req.json() } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
@@ -85,6 +85,7 @@ export async function POST(req: Request, { params }: Props) {
         participantEmail: p.email.trim().toLowerCase(),
         eventCode,
         emailStatus: "PENDING" as const,
+        metadata: p.metadata && Object.keys(p.metadata).length > 0 ? p.metadata : undefined,
       },
     })
   }

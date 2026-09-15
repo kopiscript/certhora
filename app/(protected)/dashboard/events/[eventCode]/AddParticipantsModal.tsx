@@ -8,6 +8,7 @@ import { X, Plus, Trash2, Upload, Loader2, UserPlus } from "lucide-react"
 interface Row {
   name: string
   email: string
+  metadata?: Record<string, string>
 }
 
 const emptyRows = (): Row[] => [{ name: "", email: "" }, { name: "", email: "" }]
@@ -23,6 +24,7 @@ export function AddParticipantsModal({
   const [mode, setMode] = useState<"manual" | "csv">("manual")
   const [rows, setRows] = useState<Row[]>(emptyRows())
   const [csvFileName, setCsvFileName] = useState("")
+  const [csvExtraColumns, setCsvExtraColumns] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -38,6 +40,7 @@ export function AddParticipantsModal({
     setError("")
     setRows(emptyRows())
     setCsvFileName("")
+    setCsvExtraColumns([])
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -57,10 +60,26 @@ export function AddParticipantsModal({
         if (!nameKey || !emailKey) {
           setError('CSV must have "name" and "email" columns.')
           setRows([])
+          setCsvExtraColumns([])
           return
         }
+        // Any other column is treated as a custom field — it auto-fills a
+        // template text placeholder whose label matches the column header.
+        const extraKeys = fields.filter(f => f !== nameKey && f !== emailKey)
+        setCsvExtraColumns(extraKeys)
         const parsed = result.data
-          .map(r => ({ name: (r[nameKey] ?? "").trim(), email: (r[emailKey] ?? "").trim() }))
+          .map(r => {
+            const metadata: Record<string, string> = {}
+            for (const k of extraKeys) {
+              const v = (r[k] ?? "").trim()
+              if (v) metadata[k.trim()] = v
+            }
+            return {
+              name: (r[nameKey] ?? "").trim(),
+              email: (r[emailKey] ?? "").trim(),
+              metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+            }
+          })
           .filter(r => r.name || r.email)
         if (parsed.length === 0) setError("No rows found in that CSV.")
         setRows(parsed)
@@ -84,7 +103,7 @@ export function AddParticipantsModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          participants: validRows.map(r => ({ name: r.name.trim(), email: r.email.trim() })),
+          participants: validRows.map(r => ({ name: r.name.trim(), email: r.email.trim(), metadata: r.metadata })),
         }),
       })
       const data = await res.json()
@@ -202,7 +221,8 @@ export function AddParticipantsModal({
                   {csvFileName || "Click to upload a .csv file"}
                 </span>
                 <span style={{ fontSize: 11, color: "var(--ct-text-3)" }}>
-                  Must include a &quot;name&quot; and &quot;email&quot; column
+                  Must include a &quot;name&quot; and &quot;email&quot; column. Other columns
+                  auto-fill matching text placeholders in the certificate design.
                 </span>
                 <input
                   ref={fileInputRef}
@@ -220,6 +240,7 @@ export function AddParticipantsModal({
                     color: "var(--ct-text-3)", borderBottom: "1px solid var(--ct-border)",
                   }}>
                     {validRows.length} valid{invalidCount > 0 ? `, ${invalidCount} skipped (missing name or invalid email)` : ""}
+                    {csvExtraColumns.length > 0 && ` · extra fields: ${csvExtraColumns.join(", ")}`}
                   </div>
                   <div style={{ maxHeight: 220, overflowY: "auto" }}>
                     {rows.map((row, i) => {
