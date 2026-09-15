@@ -218,6 +218,7 @@ model Certificate {
   metadata         Json?
   queuedAt         DateTime?
   sendAttempts     Int         @default(0)
+  sentAt           DateTime?
 
   event Event @relation(fields: [eventCode], references: [eventCode], onDelete: Restrict)
 
@@ -225,6 +226,7 @@ model Certificate {
   @@index([participantEmail])
   @@index([emailStatus])
   @@index([eventCode, emailStatus])
+  @@index([emailStatus, sentAt])
 }
 
 model EventFeedback {

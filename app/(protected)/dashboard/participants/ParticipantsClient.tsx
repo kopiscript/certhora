@@ -355,6 +355,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
   // ── Send emails (per-event bulk, or a manual cross-event selection) ───────────
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
+  const [sendNotice, setSendNotice] = useState('')
   const [sendProgress, setSendProgress] = useState({ sent: 0, remaining: 0 })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
@@ -471,7 +472,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
     if (!canSendEmails || sending) return
 
     if (selectedCount > 0) {
-      setSending(true); setSendError(''); setSendProgress({ sent: 0, remaining: 0 })
+      setSending(true); setSendError(''); setSendNotice(''); setSendProgress({ sent: 0, remaining: 0 })
       const ids = Array.from(selectedIds)
       let totalSent = 0
       try {
@@ -488,6 +489,10 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
           if (data.sent === 0 && data.generateErrors?.length) throw new Error(data.generateErrors.join('; '))
           totalSent += data.sent
           setSendProgress({ sent: totalSent, remaining: data.remaining })
+          if (data.dailyLimitReached) {
+            setSendNotice(`Daily send limit reached — ${data.remaining} will send once you try again tomorrow.`)
+            break
+          }
           if (data.remaining === 0) break
         }
         setSelectedIds(new Set())
@@ -501,7 +506,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
     }
 
     if (!eventFilter || queuedForEvent === 0) return
-    setSending(true); setSendError(''); setSendProgress({ sent: 0, remaining: 0 })
+    setSending(true); setSendError(''); setSendNotice(''); setSendProgress({ sent: 0, remaining: 0 })
     let totalSent = 0
     try {
       for (let i = 0; i < 50; i++) {
@@ -511,6 +516,10 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
         if (data.sent === 0 && data.generateError) throw new Error(data.generateError)
         totalSent += data.sent
         setSendProgress({ sent: totalSent, remaining: data.remaining })
+        if (data.dailyLimitReached) {
+          setSendNotice(`Daily send limit reached — ${data.remaining} will send once you try again tomorrow.`)
+          break
+        }
         if (data.remaining === 0) break
       }
       router.refresh()
@@ -629,7 +638,19 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
         </div>
       </header>
 
-      
+
+      {sendNotice && (
+        <div style={{
+          padding: '10px 32px',
+          borderBottom: '1px solid var(--ct-border)',
+          background: 'rgba(251,191,36,0.08)',
+          color: '#FBBF24',
+          fontSize: 13,
+        }}>
+          {sendNotice}
+        </div>
+      )}
+
       {!canSendEmails && (
         <div style={{
           padding: '10px 32px',
