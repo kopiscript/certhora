@@ -26,43 +26,6 @@ export interface EventOption {
   eventName: string
 }
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-export const MOCK_CERTS: CertRow[] = ([
-  { certId: 'ABC123DEF456', participantName: 'Ahmad Faris',       participantEmail: 'ahmad.faris@gmail.com',    eventCode: 'GDG2025',   emailStatus: 'SENT',    createdAt: '2025-03-15T10:30:00Z' },
-  { certId: 'XYZ789GHI012', participantName: 'Nurul Aina',        participantEmail: 'nurul.aina@outlook.com',   eventCode: 'GDG2025',   emailStatus: 'SENT',    createdAt: '2025-03-15T10:31:00Z' },
-  { certId: 'MNO345PQR678', participantName: 'Muhammad Haziq',    participantEmail: 'haziq@yahoo.com',          eventCode: 'GDG2025',   emailStatus: 'PENDING', createdAt: '2025-03-15T10:32:00Z' },
-  { certId: 'JKL678STU901', participantName: 'Siti Nabilah',      participantEmail: 'siti.nabilah@email.com',   eventCode: 'GDG2025',   emailStatus: 'FAILED',  createdAt: '2025-03-15T10:33:00Z' },
-  { certId: 'VWX234YZA567', participantName: 'Danial Azri',       participantEmail: 'danial.azri@proton.me',    eventCode: 'GDG2025',   emailStatus: 'QUEUED',  createdAt: '2025-03-15T10:34:00Z' },
-  { certId: 'BCD890EFG123', participantName: 'Izzatul Husna',     participantEmail: 'izzatul@gmail.com',        eventCode: 'DEVFEST25', emailStatus: 'SENT',    createdAt: '2025-04-02T09:00:00Z' },
-  { certId: 'HIJ456KLM789', participantName: 'Khairul Anwar',     participantEmail: 'khairul.anwar@work.io',    eventCode: 'DEVFEST25', emailStatus: 'SENT',    createdAt: '2025-04-02T09:01:00Z' },
-  { certId: 'NOP012QRS345', participantName: 'Farah Liyana',      participantEmail: 'farah.ly@hotmail.com',     eventCode: 'DEVFEST25', emailStatus: 'BOUNCED', createdAt: '2025-04-02T09:02:00Z' },
-  { certId: 'TUV678WXY901', participantName: 'Amirul Hakim',      participantEmail: 'amirul.h@gmail.com',       eventCode: 'DEVFEST25', emailStatus: 'PENDING', createdAt: '2025-04-02T09:03:00Z' },
-  { certId: 'ZAB234CDE567', participantName: 'Nurul Syafiqah',    participantEmail: 'nsyafiqah@email.my',       eventCode: 'DEVFEST25', emailStatus: 'SENT',    createdAt: '2025-04-02T09:04:00Z' },
-  { certId: 'FGH890IJK123', participantName: 'Irfan Zulkifli',    participantEmail: 'irfan.zk@icloud.com',      eventCode: 'HACKUTM25', emailStatus: 'SENT',    createdAt: '2025-05-10T14:00:00Z' },
-  { certId: 'LMN456OPQ789', participantName: 'Afiq Danish',       participantEmail: 'afiq.danish@student.utm.my', eventCode: 'HACKUTM25', emailStatus: 'SENT',  createdAt: '2025-05-10T14:01:00Z' },
-  { certId: 'RST012UVW345', participantName: 'Wan Zulaikha',      participantEmail: 'wzulaikha@gmail.com',      eventCode: 'HACKUTM25', emailStatus: 'FAILED',  createdAt: '2025-05-10T14:02:00Z' },
-  { certId: 'XYZ678ABC901', participantName: 'Hana Fateha',       participantEmail: 'hana.fateha@yahoo.com',    eventCode: 'HACKUTM25', emailStatus: 'PENDING', createdAt: '2025-05-10T14:03:00Z' },
-  { certId: 'DEF234GHI567', participantName: 'Rifqi Ramadhan',    participantEmail: 'rifqi.r@outlook.my',       eventCode: 'HACKUTM25', emailStatus: 'QUEUED',  createdAt: '2025-05-10T14:04:00Z' },
-  { certId: 'JKL890MNO123', participantName: 'Zahra Balqis',      participantEmail: 'zahra.b@gmail.com',        eventCode: 'CT2026',    emailStatus: 'PENDING', createdAt: '2025-06-01T08:00:00Z' },
-  { certId: 'PQR456STU789', participantName: 'Hari Krishnan',     participantEmail: 'hari.k@tech.io',           eventCode: 'CT2026',    emailStatus: 'PENDING', createdAt: '2025-06-01T08:01:00Z' },
-  { certId: 'VWX012YZA345', participantName: 'Li Wei',            participantEmail: 'liwei.cs@hotmail.com',     eventCode: 'CT2026',    emailStatus: 'SENT',    createdAt: '2025-06-01T08:02:00Z' },
-  { certId: 'BCD678EFG901', participantName: 'Priya Devi',        participantEmail: 'priya.d@email.in',         eventCode: 'CT2026',    emailStatus: 'FAILED',  createdAt: '2025-06-01T08:03:00Z' },
-  { certId: 'HIJ234KLM567', participantName: 'Tengku Aqil',       participantEmail: 'aqil.tengku@gmail.com',    eventCode: 'CT2026',    emailStatus: 'BOUNCED', createdAt: '2025-06-01T08:04:00Z' },
-  { certId: 'NOP890QRS123', participantName: 'Adibah Ramli',      participantEmail: 'adibah.r@proton.me',       eventCode: 'GDG2025',   emailStatus: 'SENT',    createdAt: '2025-03-15T11:00:00Z' },
-  { certId: 'TUV456WXY789', participantName: 'Zikri Luqman',      participantEmail: 'zikri.l@gmail.com',        eventCode: 'DEVFEST25', emailStatus: 'QUEUED',  createdAt: '2025-04-02T10:00:00Z' },
-  { certId: 'ZAB012CDE345', participantName: 'Amira Sofea',       participantEmail: 'amira.sofea@email.com',    eventCode: 'HACKUTM25', emailStatus: 'SENT',    createdAt: '2025-05-10T15:00:00Z' },
-  { certId: 'FGH678IJK901', participantName: 'Arif Syahmi',       participantEmail: 'arif.syahmi@yahoo.com',    eventCode: 'CT2026',    emailStatus: 'PENDING', createdAt: '2025-06-01T09:00:00Z' },
-  { certId: 'LMN234OPQ567', participantName: 'Shafiqah Hayati',   participantEmail: 'shafiqah.h@outlook.com',   eventCode: 'GDG2025',   emailStatus: 'FAILED',  createdAt: '2025-03-15T12:00:00Z' },
-] as Omit<CertRow, 'certUrl'>[]).map(row => ({ ...row, certUrl: `https://certhora.com/certs/view/${row.certId}` }))
-
-const MOCK_EVENTS: EventOption[] = [
-  { eventCode: 'GDG2025',   eventName: 'GDG Kuala Lumpur 2025' },
-  { eventCode: 'DEVFEST25', eventName: 'DevFest Malaysia 2025' },
-  { eventCode: 'HACKUTM25', eventName: 'Hackathon UTM 2025' },
-  { eventCode: 'CT2026',    eventName: 'Certhora Launch 2026' },
-]
-
 // ─── Badge configs ────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<EmailStatus, { label: string; bg: string; color: string; dot: string }> = {
@@ -370,9 +333,7 @@ interface Props {
 export function ParticipantsClient({ events: propEvents, initialCerts, canSendEmails }: Props) {
   const router = useRouter()
 
-  // Use real data if available, fall back to mock
-  const data = initialCerts.length > 0 ? initialCerts : MOCK_CERTS
-  const events = propEvents.length > 0 ? propEvents : MOCK_EVENTS
+  const events = propEvents
 
   // ── Filters ─────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
@@ -385,7 +346,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
 
   // ── Edit modal ───────────────────────────────────────────────────────────────
   const [editTarget, setEditTarget] = useState<CertRow | null>(null)
-  const [rows, setRows] = useState<CertRow[]>(data)
+  const [rows, setRows] = useState<CertRow[]>(initialCerts)
 
   // ── Export dropdown ──────────────────────────────────────────────────────────
   const [showExport, setShowExport] = useState(false)
@@ -399,7 +360,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
 
   // Keep rows in sync with initialCerts prop changes
   useEffect(() => {
-    setRows(initialCerts.length > 0 ? initialCerts : MOCK_CERTS)
+    setRows(initialCerts)
   }, [initialCerts])
 
   // ── Derived data ─────────────────────────────────────────────────────────────
@@ -693,14 +654,18 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
             justifyContent: 'center', gap: 10, height: 280,
           }}>
             <Filter size={28} style={{ color: 'var(--ct-text-3)' }} />
-            <p style={{ fontSize: 14, color: 'var(--ct-text-2)' }}>No participants match your filters</p>
-            <button onClick={() => { setSearch(''); setEventFilter(''); setStatusFilter(''); setPage(1) }}
-              style={{
-                height: 32, padding: '0 14px', borderRadius: 7, border: '1px solid var(--ct-border)',
-                background: 'transparent', color: 'var(--ct-text-2)', fontSize: 12, cursor: 'pointer',
-              }}>
-              Clear filters
-            </button>
+            <p style={{ fontSize: 14, color: 'var(--ct-text-2)' }}>
+              {rows.length === 0 ? 'No participants yet' : 'No participants match your filters'}
+            </p>
+            {rows.length > 0 && (
+              <button onClick={() => { setSearch(''); setEventFilter(''); setStatusFilter(''); setPage(1) }}
+                style={{
+                  height: 32, padding: '0 14px', borderRadius: 7, border: '1px solid var(--ct-border)',
+                  background: 'transparent', color: 'var(--ct-text-2)', fontSize: 12, cursor: 'pointer',
+                }}>
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
