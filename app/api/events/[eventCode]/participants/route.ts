@@ -58,6 +58,11 @@ export async function POST(req: Request, { params }: Props) {
   if (!Array.isArray(participants) || participants.length === 0) {
     return NextResponse.json({ error: "participants array is required" }, { status: 400 })
   }
+  for (const p of participants) {
+    if (!p.name?.trim() || !p.email?.trim() || !p.email.includes("@")) {
+      return NextResponse.json({ error: "All participants must have a valid name and email address" }, { status: 400 })
+    }
+  }
 
   const prefix = result.organizer.organizerCd.toUpperCase()
   const existing = await prisma.certificate.findMany({
@@ -68,7 +73,8 @@ export async function POST(req: Request, { params }: Props) {
 
   const certIds: string[] = []
   let attempts = 0
-  while (certIds.length < participants.length && attempts < participants.length * 20) {
+  const maxAttempts = Math.max(participants.length * 50, 1000)
+  while (certIds.length < participants.length && attempts < maxAttempts) {
     const id = `${prefix}${String(Math.floor(1000 + Math.random() * 9000))}`
     if (!existingSet.has(id) && !certIds.includes(id)) {
       certIds.push(id)
@@ -76,19 +82,24 @@ export async function POST(req: Request, { params }: Props) {
     }
     attempts++
   }
-
-  for (const [i, p] of participants.entries()) {
-    await prisma.certificate.create({
-      data: {
-        certId: certIds[i],
-        participantName: p.name.trim(),
-        participantEmail: p.email.trim().toLowerCase(),
-        eventCode,
-        emailStatus: "PENDING" as const,
-        metadata: p.metadata && Object.keys(p.metadata).length > 0 ? p.metadata : undefined,
-      },
-    })
+  if (certIds.length < participants.length) {
+    return NextResponse.json({ error: "Unable to generate unique certificate IDs" }, { status: 500 })
   }
+
+  await Promise.all(
+    participants.map((p, i) =>
+      prisma.certificate.create({
+        data: {
+          certId: certIds[i],
+          participantName: p.name.trim(),
+          participantEmail: p.email.trim().toLowerCase(),
+          eventCode,
+          emailStatus: "PENDING" as const,
+          metadata: p.metadata && Object.keys(p.metadata).length > 0 ? p.metadata : undefined,
+        },
+      })
+    )
+  )
 
   return NextResponse.json({ added: participants.length }, { status: 201 })
 }

@@ -88,6 +88,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/certificate.php",
+        destination: "/api/legacy-certificate",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
