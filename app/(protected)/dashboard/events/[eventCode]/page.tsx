@@ -11,6 +11,7 @@ import { SendEmailsButton } from "./SendEmailsButton"
 import { AddParticipantsButton } from "./AddParticipantsButton"
 import { BadgeUpload } from "./BadgeUpload"
 import { EditDesign } from "./EditDesign"
+import { ParticipantsTable } from "./ParticipantsTable"
 
 interface Props { params: Promise<{ eventCode: string }> }
 
@@ -19,10 +20,6 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   ACTIVE:    { label: "Active",    bg: "rgba(34,197,94,0.10)",   color: "#22C55E" },
   COMPLETED: { label: "Completed", bg: "rgba(37,99,235,0.12)",   color: "#60A5FA" },
   ARCHIVED:  { label: "Archived",  bg: "rgba(148,163,184,0.08)", color: "#64748B" },
-}
-
-const EMAIL_STATUS_COLORS: Record<string, string> = {
-  PENDING: "#94A3B8", QUEUED: "#FBBF24", SENT: "#22C55E", FAILED: "#F87171", BOUNCED: "#F87171",
 }
 
 export default async function EventDetailPage({ params }: Props) {
@@ -209,8 +206,9 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         )}
 
-{/* ── Participants table ──────────────────────────────────────── */}
-        <div>
+{/* ── Participants + Feedback ────────────────────────────────── */}
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 400px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <p style={{
               fontSize: 11, fontWeight: 600, letterSpacing: "0.06em",
@@ -233,59 +231,10 @@ export default async function EventDetailPage({ params }: Props) {
                 : "Click Generate Certificates above to create their certificate images."}
             </div>
           )}
-          <div style={{
-            background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
-            borderRadius: 10, overflow: "hidden",
-          }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
-                  {["Cert ID", "Name", "Email", "Status", "Views"].map(h => (
-                    <th key={h} style={{
-                      padding: "10px 14px", textAlign: "left",
-                      fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
-                      textTransform: "uppercase", color: "var(--ct-text-3)",
-                    }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {event.certificates.map((c: typeof event.certificates[number]) => (
-                  <tr key={c.certId} style={{ borderBottom: "1px solid var(--ct-border)" }}>
-                    <td style={{ padding: "10px 14px" }}>
-                      <Link href={`/certs/view/${c.certId}`} target="_blank"
-                        style={{ fontSize: 12, fontFamily: "monospace", color: "var(--ct-blue)", textDecoration: "none" }}>
-                        {c.certId}
-                      </Link>
-                    </td>
-                    <td style={{ padding: "10px 14px", fontSize: 13, color: "var(--ct-text)" }}>
-                      {c.participantName}
-                    </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--ct-text-2)" }}>
-                      {c.participantEmail}
-                    </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 5,
-                        background: `${EMAIL_STATUS_COLORS[c.emailStatus]}18`,
-                        color: EMAIL_STATUS_COLORS[c.emailStatus],
-                      }}>
-                        {c.emailStatus}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--ct-text-3)" }}>
-                      {c.viewCount}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ParticipantsTable certificates={event.certificates} />
         </div>
         {/* ── Feedback ────────────────────────────────────────────────── */}
-        <div>
+        <div style={{ flex: "1 1 400px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <p style={{
               fontSize: 11, fontWeight: 600, letterSpacing: "0.06em",
@@ -373,6 +322,7 @@ export default async function EventDetailPage({ params }: Props) {
               ))}
             </div>
           )}
+        </div>
         </div>
 
       </div>

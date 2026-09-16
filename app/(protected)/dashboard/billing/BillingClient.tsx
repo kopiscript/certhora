@@ -52,29 +52,6 @@ export interface OrgInfo {
   pendingEffectiveDate: string | null
 }
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_ORG: OrgInfo = {
-  tier: 'PRO',
-  certQuota: 500,
-  expiryDate: '2026-06-26T00:00:00Z',
-  subscribeDate: '2025-06-26T00:00:00Z',
-  orgName: 'Demo Org',
-  pendingTier: null,
-  pendingEffectiveDate: null,
-}
-
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: 1, billcode: 'BILL-20260526', amount: '10.00', tierRequested: 'PRO', status: 'SUCCESS',  createdAt: '2026-05-26T10:30:00Z', refno: 'FPX-20260526-001' },
-  { id: 2, billcode: 'BILL-20260426', amount: '10.00', tierRequested: 'PRO', status: 'SUCCESS',  createdAt: '2026-04-26T09:15:00Z', refno: 'FPX-20260426-002' },
-  { id: 3, billcode: 'BILL-20260326', amount: '10.00', tierRequested: 'PRO', status: 'SUCCESS',  createdAt: '2026-03-26T11:00:00Z', refno: 'FPX-20260326-003' },
-  { id: 4, billcode: 'BILL-20260226', amount: '10.00', tierRequested: 'PRO', status: 'SUCCESS',  createdAt: '2026-02-26T08:45:00Z', refno: 'FPX-20260226-004' },
-  { id: 5, billcode: 'BILL-20260126', amount: '10.00', tierRequested: 'PRO',     status: 'FAILED',   createdAt: '2026-01-26T14:20:00Z', refno: null },
-  { id: 6, billcode: 'BILL-20251226', amount: '10.00', tierRequested: 'PRO', status: 'SUCCESS',  createdAt: '2025-12-26T10:00:00Z', refno: 'FPX-20251226-006' },
-  { id: 7, billcode: 'BILL-20251126', amount: '10.00', tierRequested: 'PRO', status: 'REFUNDED', createdAt: '2025-11-26T13:30:00Z', refno: 'FPX-20251126-007' },
-  { id: 8, billcode: 'BILL-20251026', amount: '0.00',  tierRequested: 'FREE',    status: 'SUCCESS',  createdAt: '2025-10-26T09:00:00Z', refno: 'FREE-TIER' },
-]
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string) {
@@ -283,16 +260,12 @@ interface Props {
 }
 
 export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUsed, checkoutDefaults }: Props) {
-  const org = propOrg
-    ? {
-        ...propOrg,
-        tier: normalizeTierKey(propOrg.tier),
-        pendingTier: propOrg.pendingTier ? normalizeTierKey(propOrg.pendingTier) : null,
-      }
-    : MOCK_ORG
-  const transactions = propTxns.length > 0
-    ? propTxns.map(txn => ({ ...txn, tierRequested: normalizeTierKey(txn.tierRequested) }))
-    : MOCK_TRANSACTIONS
+  const org = {
+    ...propOrg,
+    tier: normalizeTierKey(propOrg.tier),
+    pendingTier: propOrg.pendingTier ? normalizeTierKey(propOrg.pendingTier) : null,
+  }
+  const transactions = propTxns.map(txn => ({ ...txn, tierRequested: normalizeTierKey(txn.tierRequested) }))
 
   const router = useRouter()
   const [showPlans, setShowPlans] = useState(false)
