@@ -63,7 +63,7 @@ const FeaturesSection: React.FC = () => {
   ];
 
   return (
-    <section className="relative z-10 py-24 px-4 md:px-8 bg-transparent">
+    <section id="features" className="relative z-10 py-24 px-4 md:px-8 bg-transparent">
       <div className="max-w-7xl mx-auto">
         <motion.h2
           className="text-4xl md:text-5xl font-extrabold text-white text-center mb-16 drop-shadow-lg"
