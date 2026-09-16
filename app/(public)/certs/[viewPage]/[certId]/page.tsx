@@ -7,7 +7,7 @@ import { CheckCircle, AlertTriangle, Clock, Calendar, Building2, BadgeCheck, Has
 import type { Metadata } from 'next'
 import CertCanvas from './CertCanvas'
 import ShareActions from './ShareActions'
-import FeedbackForm from './FeedbackForm'
+import FeedbackSection from './FeedbackSection'
 
 interface Props {
   params: Promise<{ viewPage: string; certId: string }>
@@ -74,9 +74,9 @@ export default async function CertViewPage({ params }: Props) {
 
       {/* ── Top nav ───────────────────────────────────────────────────────── */}
       <nav
+        className="px-4 sm:px-7 py-3.5 justify-center sm:justify-start"
         style={{
           borderBottom: '1px solid var(--ct-border)',
-          padding: '14px 28px',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -98,6 +98,7 @@ export default async function CertViewPage({ params }: Props) {
           Certhora
         </span>
         <span
+          className="hidden sm:inline"
           style={{
             marginLeft: 'auto',
             fontSize: 11, fontWeight: 600,
@@ -111,17 +112,15 @@ export default async function CertViewPage({ params }: Props) {
       </nav>
 
       {/* ── Page body ─────────────────────────────────────────────────────── */}
-      <main style={{ maxWidth: 1240, margin: '0 auto', padding: '52px 24px 96px' }}>
+      <main className="max-w-[1240px] mx-auto px-4 sm:px-6 pt-8 sm:pt-14 pb-16 sm:pb-24 overflow-x-hidden">
 
         {/* Verification status banner */}
         <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-2"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '14px 20px',
+            padding: '14px 18px',
             borderRadius: 12,
-            marginBottom: 48,
+            marginBottom: 32,
             background: isExpired
               ? 'rgba(248,113,113,0.07)'
               : 'rgba(34,197,94,0.07)',
@@ -141,8 +140,8 @@ export default async function CertViewPage({ params }: Props) {
             {isExpired ? 'Certificate Expired' : 'Verified & Authentic Certificate'}
           </span>
 
-          <span style={{ fontSize: 13, color: 'var(--ct-text-3)', marginLeft: 4 }}>·</span>
-          <span style={{ fontSize: 13, color: 'var(--ct-text-2)' }}>
+          <span className="hidden sm:inline" style={{ fontSize: 13, color: 'var(--ct-text-3)' }}>·</span>
+          <span style={{ fontSize: 13, color: 'var(--ct-text-2)', wordBreak: 'break-word' }}>
             Credential ID:{' '}
             <span style={{ fontFamily: 'var(--font-geist-mono)', color: 'var(--ct-text)' }}>
               {cert.certId}
@@ -151,8 +150,8 @@ export default async function CertViewPage({ params }: Props) {
 
           {!isExpired && expiryDate && (
             <span
+              className="sm:ml-auto"
               style={{
-                marginLeft: 'auto',
                 display: 'flex', alignItems: 'center', gap: 5,
                 fontSize: 12, color: 'var(--ct-text-3)',
               }}
@@ -164,7 +163,7 @@ export default async function CertViewPage({ params }: Props) {
         </div>
 
         {/* ── Two-column grid ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8 lg:gap-12 items-start">
 
           {/* ═══ LEFT: Certificate canvas + feedback ═════════════════════ */}
           <div className="min-w-0 flex flex-col gap-6">
@@ -176,7 +175,7 @@ export default async function CertViewPage({ params }: Props) {
               primaryColor={primaryColor}
               templateVersion={templateVersion}
             />
-            <FeedbackForm
+            <FeedbackSection
               eventCode={event.eventCode}
               eventName={event.eventName}
             />
@@ -232,7 +231,7 @@ export default async function CertViewPage({ params }: Props) {
             >
               <SectionLabel>Credential Details</SectionLabel>
 
-              <div className="grid grid-cols-2 gap-5 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
                 {issueDate && (
                   <MetaItem icon={<BadgeCheck size={13} />} label="Issued On" value={issueDate} />
                 )}

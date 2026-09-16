@@ -70,7 +70,7 @@ const PricingSection: React.FC = () => {
           Simple, Transparent <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-600">Pricing</span>
         </motion.h2>
 
-        <div className="grid md:grid-cols-3 gap-8 justify-center">
+        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           {TIERS.map((tier) => (
             <PricingCard key={tier.key} tier={tier} />
           ))}

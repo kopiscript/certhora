@@ -22,6 +22,9 @@ export default function CertCanvas({ certId, participantName, hasBadge, badgeUrl
   const previewSrc = `/api/certs/${certId}/preview?v=${templateVersion}`
 
   function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    // Touch devices have no real hover — skip the tilt so the cert stays put
+    // instead of getting stuck mid-tilt from a stray synthetic mousemove.
+    if (typeof window !== 'undefined' && !window.matchMedia('(hover: hover)').matches) return
     const rect = containerRef.current!.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width - 0.5
     const y = (e.clientY - rect.top) / rect.height - 0.5

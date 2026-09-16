@@ -6,7 +6,6 @@ import Footer from '@/components/layout/Footer';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import PricingSection from '@/components/landing/PricingSection';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import MouseGlow from '@/components/effects/MouseGlow';
 
 export default function LandingPage() {
@@ -29,7 +28,6 @@ export default function LandingPage() {
         <HeroSection />
         <FeaturesSection />
         <PricingSection />
-        <TestimonialsSection />
       </main>
 
       <Footer />
