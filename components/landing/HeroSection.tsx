@@ -98,8 +98,8 @@ const HeroSection: React.FC = () => {
           transition={{ duration: 0.8, ease, delay: 0.25 }}
           className="relative"
         >
-          {/* Ambient glow behind the mockup */}
-          <div className="absolute inset-0 bg-indigo-500/20 blur-[100px] rounded-full scale-75" />
+          {/* Ambient glow behind the mockup — desktop-only, blur() is expensive to paint on mobile GPUs */}
+          <div className="hidden md:block absolute inset-0 bg-indigo-500/20 blur-[100px] rounded-full scale-75" />
 
           <motion.div
             whileHover={{ scale: 1.04, y: -10 }}
@@ -112,6 +112,7 @@ const HeroSection: React.FC = () => {
               width={1672}
               height={941}
               priority
+              sizes="(min-width: 1024px) 55vw, 90vw"
               className="w-full h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
             />
           </motion.div>
