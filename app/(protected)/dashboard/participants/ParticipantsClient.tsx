@@ -1,5 +1,6 @@
 'use client'
 
+import { InfoTip } from '@/components/info-tip'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -550,7 +551,13 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
         padding: '0 32px', borderBottom: '1px solid var(--ct-border)', flexShrink: 0,
       }}>
         <div>
-          <h1 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ct-text)' }}>Participants</h1>
+          <h1 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ct-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            Participants
+            <InfoTip>
+              Everyone who has a certificate, across all your events. Use the search box and event filter to find people.
+              Tick people to email or delete them. Export CSV saves the list as a spreadsheet.
+            </InfoTip>
+          </h1>
           <p style={{ fontSize: 12, color: 'var(--ct-text-3)', display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
             <Users size={11} />
             {rows.length.toLocaleString()} total record{rows.length !== 1 ? 's' : ''}

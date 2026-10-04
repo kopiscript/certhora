@@ -56,7 +56,7 @@ export function SendEmailsButton({
       <button
         onClick={handleSend}
         disabled={disabled}
-        title={error || (!canSendEmails ? "Upgrade to Pro to email participants" : resendableCount === 0 ? "No sendable certificates" : undefined)}
+        title={error || (!canSendEmails ? "Upgrade to Pro to email participants" : resendableCount === 0 ? "Nothing to send: everyone has already been emailed." : "Creates any missing certificates and emails each person a link to theirs. People already emailed are skipped, so it is safe to click again.")}
         style={{
           display: "flex", alignItems: "center", gap: 7,
           height: 36, padding: "0 14px",

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import { CalendarDays, Award, TrendingUp, Zap } from "lucide-react"
 import { QuickActions } from "@/components/quick-actions"
+import { InfoTip } from "@/components/info-tip"
 
 export default async function DashboardPage() {
   const session = await getCurrentSession()
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
       label: "Quota Remaining",
       value: Math.max(0, quota - monthCerts),
       icon: Zap,
-      note: "Resets next month",
+      note: "Resets on the 1st of next month",
     },
   ]
 
@@ -67,7 +68,14 @@ export default async function DashboardPage() {
         style={{ borderColor: "var(--ct-border)" }}
       >
         <div>
-          <h1 className="text-sm font-semibold text-foreground">Dashboard</h1>
+          <h1 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            Dashboard
+            <InfoTip>
+              Getting started: 1) Create an event and design the certificate. 2) Add participants one by one or from a CSV file.
+              3) Click Send Emails on the event page. Each person gets a link to view, download and share their certificate.
+              The numbers on this page show how many certificates you have made and how much of this month&apos;s limit is used.
+            </InfoTip>
+          </h1>
           <p className="text-xs" style={{ color: "var(--ct-text-3)" }}>
             {now.toLocaleDateString("en-MY", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>

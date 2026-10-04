@@ -9,7 +9,7 @@ export function AddParticipantsButton({ eventCode }: { eventCode: string }) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{
+      <button onClick={() => setOpen(true)} title="Add people one by one, or upload a CSV file with names and emails" style={{
         display: "flex", alignItems: "center", gap: 6,
         height: 28, padding: "0 10px",
         background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",

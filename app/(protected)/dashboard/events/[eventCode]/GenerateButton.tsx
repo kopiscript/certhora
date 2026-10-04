@@ -51,7 +51,13 @@ export function GenerateButton({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-      <button onClick={handleGenerate} disabled={disabled} style={{
+      <button onClick={handleGenerate} disabled={disabled}
+        title={
+          pendingCount === 0 ? "Every participant already has a certificate."
+          : pendingCount > quotaRemaining ? `Not enough monthly quota: ${pendingCount} needed, ${Math.max(0, quotaRemaining)} left. Upgrade on the Billing page.`
+          : "Creates the certificate images for people who don't have one yet. This uses your monthly quota. It does not send any email."
+        }
+        style={{
         display: "flex", alignItems: "center", gap: 7,
         height: 36, padding: "0 14px", background: disabled ? "var(--ct-surface)" : "var(--ct-blue)",
         color: disabled ? "var(--ct-text-3)" : "white",
@@ -63,6 +69,11 @@ export function GenerateButton({
           ? <><Loader2 size={14} className="animate-spin" /> Generating…</>
           : <><Zap size={14} /> Generate Certificates ({pendingCount})</>}
       </button>
+      {pendingCount > quotaRemaining && pendingCount > 0 && (
+        <p style={{ fontSize: 11, color: "#FBBF24", maxWidth: 280, textAlign: "right" }}>
+          Not enough quota: {pendingCount} needed, {Math.max(0, quotaRemaining)} left this month. Upgrade on the Billing page.
+        </p>
+      )}
       {error && (
         <p style={{ fontSize: 11, color: "var(--ct-error)", maxWidth: 280, textAlign: "right" }}>{error}</p>
       )}

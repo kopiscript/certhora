@@ -5,13 +5,15 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentSession, getCurrentOrganizer } from "@/lib/session"
 import { tierCanEmailParticipants } from "@/lib/tiers"
 import Link from "next/link"
-import { ArrowLeft, CalendarDays, LayoutTemplate, Users, Star, MessageSquare, Copy } from "lucide-react"
+import { ArrowLeft, Printer, CalendarDays, LayoutTemplate, Users, Star, MessageSquare, Copy } from "lucide-react"
 import { GenerateButton } from "./GenerateButton"
 import { SendEmailsButton } from "./SendEmailsButton"
 import { AddParticipantsButton } from "./AddParticipantsButton"
 import { BadgeUpload } from "./BadgeUpload"
 import { EditDesign } from "./EditDesign"
 import { ParticipantsTable } from "./ParticipantsTable"
+import { DownloadPdfButton } from "./DownloadPdfButton"
+import { InfoTip } from "@/components/info-tip"
 
 interface Props { params: Promise<{ eventCode: string }> }
 
@@ -63,6 +65,7 @@ export default async function EventDetailPage({ params }: Props) {
 
   const badge = STATUS_BADGE[event.status] ?? STATUS_BADGE.DRAFT
   const pendingCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "PENDING").length
+  const printableCount = event.certificates.length - pendingCount
   const sentCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "SENT").length
   const queuedCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "QUEUED").length
   const resendableCount = event.certificates.filter(
@@ -121,6 +124,43 @@ export default async function EventDetailPage({ params }: Props) {
               Duplicate
             </button>
           </Link>
+          {printableCount > 0 ? (
+            <>
+            <DownloadPdfButton
+              href={`/api/events/${eventCode}/certificates-pdf`}
+              title="Saves the certificates as a PDF file (50 per file), one per page. Best for sending to a print shop."
+              style={{
+                height: 36, padding: "0 14px",
+                background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
+                color: "var(--ct-text-2)", borderRadius: 8,
+                fontSize: 13, fontWeight: 500,
+              }}
+            />
+            <Link href={`/dashboard/events/${eventCode}/print`} target="_blank" title="Opens a print preview of all generated certificates, one per page.">
+              <button style={{
+                display: "flex", alignItems: "center", gap: 7,
+                height: 36, padding: "0 14px",
+                background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
+                color: "var(--ct-text-2)", borderRadius: 8,
+                fontSize: 13, fontWeight: 500, cursor: "pointer",
+              }}>
+                <Printer size={13} />
+                Print all ({printableCount})
+              </button>
+            </Link>
+            </>
+          ) : (
+            <button disabled title="Nothing to print yet. Click Generate Certificates first." style={{
+              display: "flex", alignItems: "center", gap: 7,
+              height: 36, padding: "0 14px",
+              background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
+              color: "var(--ct-text-3)", borderRadius: 8,
+              fontSize: 13, fontWeight: 500, cursor: "not-allowed", opacity: 0.5,
+            }}>
+              <Printer size={13} />
+              Print all
+            </button>
+          )}
           <GenerateButton
             eventCode={eventCode}
             pendingCount={pendingCount}
@@ -213,8 +253,14 @@ export default async function EventDetailPage({ params }: Props) {
             <p style={{
               fontSize: 11, fontWeight: 600, letterSpacing: "0.06em",
               textTransform: "uppercase", color: "var(--ct-text-2)", margin: 0,
+              display: "flex", alignItems: "center", gap: 6,
             }}>
               Participants
+              <InfoTip width={300}>
+                Need paper copies? Tick the people you want in the table, then choose Print selected or Download PDF.
+                To do everyone, use Print all or Download PDF at the top of the page.
+                The PDF is the cleanest option because it has no date or web address on the page.
+              </InfoTip>
             </p>
             <AddParticipantsButton eventCode={eventCode} />
           </div>
@@ -231,7 +277,7 @@ export default async function EventDetailPage({ params }: Props) {
                 : "Click Generate Certificates above to create their certificate images."}
             </div>
           )}
-          <ParticipantsTable certificates={event.certificates} />
+          <ParticipantsTable certificates={event.certificates} eventCode={eventCode} />
         </div>
         {/* ── Feedback ────────────────────────────────────────────────── */}
         <div style={{ flex: "1 1 400px", minWidth: 0 }}>

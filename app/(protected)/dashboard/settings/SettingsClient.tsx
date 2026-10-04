@@ -435,7 +435,7 @@ export function SettingsClient({ initial }: Props) {
           <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
             {/* Org name */}
-            <Field label="Organization Name">
+            <Field label="Organization Name" caption="Shown on your certificates' public pages as the issuer.">
               <PrefixedInput
                 prefix={<Building2 size={13} />}
                 value={orgName}

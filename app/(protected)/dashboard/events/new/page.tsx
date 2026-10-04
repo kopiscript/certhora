@@ -1,5 +1,6 @@
 "use client"
 
+import { InfoTip } from "@/components/info-tip"
 import { useState, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, ChevronRight, ChevronLeft, Plus, Upload } from "lucide-react"
@@ -166,30 +167,30 @@ export default function NewEventPage() {
         {/* ── Step 1: Event details ──────────────────────────────────── */}
         {!loadingDuplicate && step === 1 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <Field label="Event Name *">
+            <Field label="Event Name *" hint="Printed on the certificate page, so use the name participants will recognise.">
               <input value={eventName} onChange={e => setEventName(e.target.value)}
                 placeholder="e.g. Web Development Workshop 2025"
                 style={inputStyle} />
             </Field>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <Field label="Event Date">
+              <Field label="Event Date" hint="Shown on the certificate page. Optional.">
                 <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)}
                   style={inputStyle} />
               </Field>
-              <Field label="Certificate Expiry">
+              <Field label="Certificate Expiry" hint="After this date the certificate shows as Expired. Leave empty if it never expires.">
                 <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)}
                   style={inputStyle} />
               </Field>
             </div>
 
-            <Field label="Description">
+            <Field label="Description" hint="A short note about the event, shown on each certificate page. Optional.">
               <textarea value={description} onChange={e => setDescription(e.target.value)}
                 rows={3} placeholder="Brief description of the event…"
                 style={{ ...inputStyle, height: "auto", padding: "10px 12px", resize: "vertical" }} />
             </Field>
 
-            <Field label="Skills (comma-separated)">
+            <Field label="Skills (comma-separated)" hint="What participants learned. Each one shows as a tag on the certificate page. Optional.">
               <input value={skillsRaw} onChange={e => setSkillsRaw(e.target.value)}
                 placeholder="React, TypeScript, Node.js"
                 style={inputStyle} />
@@ -273,8 +274,11 @@ export default function NewEventPage() {
         {!loadingDuplicate && step === 2 && (
           <div>
             <p style={{ fontSize: 13, color: "var(--ct-text-2)", marginBottom: 20 }}>
-              Design the certificate layout. Drag the name and QR elements to position them.
-              Add custom text placeholders for dates, location, or any other fields.
+              Design the certificate layout. Drag the name and QR code to where you want them.
+              <InfoTip width={320}>
+                Add extra text for dates, location or anything else. You can change the design later from the event page,
+                but certificates already generated keep their old look.
+              </InfoTip>
             </p>
             <TemplateEditor
               initial={templateLayout}
@@ -316,15 +320,16 @@ export default function NewEventPage() {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label style={{
-        display: "block", fontSize: 11, fontWeight: 600,
+        display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600,
         letterSpacing: "0.06em", textTransform: "uppercase",
         color: "var(--ct-text-2)", marginBottom: 6,
       }}>
         {label}
+        {hint && <InfoTip label={`About ${label}`}>{hint}</InfoTip>}
       </label>
       {children}
     </div>

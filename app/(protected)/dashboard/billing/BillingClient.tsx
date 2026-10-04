@@ -1,5 +1,6 @@
 'use client'
 
+import { InfoTip } from '@/components/info-tip'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -321,7 +322,13 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
         padding: '0 32px', borderBottom: '1px solid var(--ct-border)', flexShrink: 0,
       }}>
         <div>
-          <h1 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ct-text)' }}>Billing &amp; Subscription</h1>
+          <h1 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ct-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            Billing &amp; Subscription
+            <InfoTip>
+              Your plan decides how many certificates you can make each month and whether you can email them.
+              The monthly count resets on the 1st. Plans don&apos;t renew by themselves, so pay again before the expiry date.
+            </InfoTip>
+          </h1>
           <p style={{ fontSize: 12, color: 'var(--ct-text-3)', display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
             <CreditCard size={11} />
             {transactions.length} invoice record{transactions.length !== 1 ? 's' : ''}

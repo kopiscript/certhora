@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
+  BarChart3,
   CreditCard,
   Settings,
   LogOut,
@@ -18,6 +19,7 @@ const NAV = [
   { label: "Dashboard",    href: "/dashboard",              icon: LayoutDashboard },
   { label: "Events",       href: "/dashboard/events",       icon: CalendarDays },
   { label: "Participants", href: "/dashboard/participants", icon: Users },
+  { label: "Analytics",    href: "/dashboard/analytics",    icon: BarChart3 },
   { label: "Billing",   href: "/dashboard/billing",   icon: CreditCard },
   { label: "Settings",  href: "/dashboard/settings",  icon: Settings },
 ]
