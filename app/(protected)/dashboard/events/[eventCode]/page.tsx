@@ -13,9 +13,17 @@ import { BadgeUpload } from "./BadgeUpload"
 import { EditDesign } from "./EditDesign"
 import { ParticipantsTable } from "./ParticipantsTable"
 import { DownloadPdfButton } from "./DownloadPdfButton"
+import { RegenerateButton } from "./RegenerateButton"
 import { InfoTip } from "@/components/info-tip"
 
 interface Props { params: Promise<{ eventCode: string }> }
+
+const iconBtn: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  width: 36, height: 36, padding: 0,
+  background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
+  color: "var(--ct-text-2)", borderRadius: 8, cursor: "pointer",
+}
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
   DRAFT:     { label: "Draft",     bg: "rgba(148,163,184,0.12)", color: "#94A3B8" },
@@ -112,55 +120,50 @@ export default async function EventDetailPage({ params }: Props) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Link href={`/dashboard/events/new?duplicateFrom=${eventCode}`}>
-            <button style={{
-              display: "flex", alignItems: "center", gap: 7,
-              height: 36, padding: "0 14px",
-              background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
-              color: "var(--ct-text-2)", borderRadius: 8,
-              fontSize: 13, fontWeight: 500, cursor: "pointer",
-            }}>
-              <Copy size={13} />
-              Duplicate
-            </button>
+          <Link
+            href={`/dashboard/events/new?duplicateFrom=${eventCode}`}
+            title="Duplicate this event (copies its settings and design)"
+            aria-label="Duplicate event"
+            style={iconBtn}
+          >
+            <Copy size={15} />
           </Link>
           {printableCount > 0 ? (
             <>
-            <DownloadPdfButton
-              href={`/api/events/${eventCode}/certificates-pdf`}
-              title="Saves the certificates as a PDF file (50 per file), one per page. Best for sending to a print shop."
-              style={{
-                height: 36, padding: "0 14px",
-                background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
-                color: "var(--ct-text-2)", borderRadius: 8,
-                fontSize: 13, fontWeight: 500,
-              }}
-            />
-            <Link href={`/dashboard/events/${eventCode}/print`} target="_blank" title="Opens a print preview of all generated certificates, one per page.">
-              <button style={{
-                display: "flex", alignItems: "center", gap: 7,
-                height: 36, padding: "0 14px",
-                background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
-                color: "var(--ct-text-2)", borderRadius: 8,
-                fontSize: 13, fontWeight: 500, cursor: "pointer",
-              }}>
-                <Printer size={13} />
-                Print all ({printableCount})
-              </button>
-            </Link>
+              <DownloadPdfButton
+                iconOnly
+                href={`/api/events/${eventCode}/certificates-pdf`}
+                label="Download PDF"
+                title="Download PDF: saves the certificates as a PDF file (50 per file), one per page. Best for sending to a print shop."
+                style={iconBtn}
+              />
+              <Link
+                href={`/dashboard/events/${eventCode}/print`}
+                target="_blank"
+                title={`Print all (${printableCount}): opens a print preview of all generated certificates, one per page.`}
+                aria-label="Print all certificates"
+                style={iconBtn}
+              >
+                <Printer size={15} />
+              </Link>
+              <RegenerateButton
+                iconOnly
+                eventCode={eventCode}
+                count={printableCount}
+                label="Regenerate"
+                title="Regenerate: redraws every generated certificate with the current design. Links stay the same, no emails are sent and no quota is used."
+                style={iconBtn}
+              />
             </>
           ) : (
-            <button disabled title="Nothing to print yet. Click Generate Certificates first." style={{
-              display: "flex", alignItems: "center", gap: 7,
-              height: 36, padding: "0 14px",
-              background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)",
-              color: "var(--ct-text-3)", borderRadius: 8,
-              fontSize: 13, fontWeight: 500, cursor: "not-allowed", opacity: 0.5,
-            }}>
-              <Printer size={13} />
-              Print all
-            </button>
+            <span
+              title="Print, PDF and Regenerate unlock once certificates have been generated."
+              style={{ ...iconBtn, opacity: 0.45, cursor: "not-allowed" }}
+            >
+              <Printer size={15} />
+            </span>
           )}
+          <span style={{ width: 1, height: 22, background: "var(--ct-border)", margin: "0 2px" }} />
           <GenerateButton
             eventCode={eventCode}
             pendingCount={pendingCount}

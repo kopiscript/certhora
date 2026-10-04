@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { DownloadPdfButton } from "./DownloadPdfButton"
+import { RegenerateButton } from "./RegenerateButton"
 import { ChevronLeft, ChevronRight, Printer } from "lucide-react"
 
 const PER_PAGE = 15
@@ -74,6 +75,19 @@ export function ParticipantsTable({ certificates, eventCode }: { certificates: C
         <DownloadPdfButton
           href={pdfHref}
           title="Saves only the ticked certificates as a PDF file."
+          style={{
+            padding: "5px 12px", borderRadius: 6,
+            background: "transparent",
+            border: "1px solid rgba(37,99,235,0.35)", color: "var(--ct-text)",
+            fontSize: 12, fontWeight: 600,
+          }}
+        />
+        <RegenerateButton
+          eventCode={eventCode}
+          ids={Array.from(selected)}
+          count={selected.size}
+          label="Regenerate selected"
+          title="Redraws only the ticked certificates with the current design. Links stay the same, no emails are sent and no quota is used."
           style={{
             padding: "5px 12px", borderRadius: 6,
             background: "transparent",

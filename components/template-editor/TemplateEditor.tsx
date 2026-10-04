@@ -328,12 +328,14 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
               borderRadius: 4,
               background: "rgba(37,99,235,0.06)",
               whiteSpace: "nowrap",
-              maxWidth: layout.nameMaxWidth * SCALE,
+              width: layout.nameMaxWidth * SCALE,
+              boxSizing: "border-box",
+              textAlign: "center",
               overflow: "hidden",
             }}
           >
             <span style={{
-              fontSize: Math.min(layout.nameFontSize * SCALE, 32),
+              fontSize: layout.nameFontSize * SCALE,
               fontFamily: layout.nameFont,
               color: layout.nameColor,
               fontWeight: "bold",

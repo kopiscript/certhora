@@ -8,10 +8,11 @@ interface Props {
   href: string
   label?: string
   title?: string
+  iconOnly?: boolean
   style?: CSSProperties
 }
 
-export function DownloadPdfButton({ href, label = "Download PDF", title, style }: Props) {
+export function DownloadPdfButton({ href, label = "Download PDF", title, iconOnly = false, style }: Props) {
   const [loading, setLoading] = useState(false)
 
   const handleClick = async () => {
@@ -51,15 +52,16 @@ export function DownloadPdfButton({ href, label = "Download PDF", title, style }
       type="button"
       onClick={handleClick}
       disabled={loading}
-      title={title}
+      title={title ?? label}
+      aria-label={label}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 7,
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
         cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
         ...style,
       }}
     >
-      {loading ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
-      {loading ? "Preparing…" : label}
+      {loading ? <Loader2 size={iconOnly ? 15 : 13} className="animate-spin" /> : <FileDown size={iconOnly ? 15 : 13} />}
+      {iconOnly ? null : loading ? "Preparing…" : label}
     </button>
   )
 }

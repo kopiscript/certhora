@@ -66,11 +66,16 @@ export async function PATCH(req: Request, { params }: Props) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
+  const STATUSES = ["DRAFT", "ACTIVE", "COMPLETED", "ARCHIVED"] as const
+  if (body.status !== undefined && !STATUSES.includes(body.status as (typeof STATUSES)[number])) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 })
+  }
+
   const updated = await prisma.event.update({
     where: { eventCode },
     data: {
       eventName:   typeof body.eventName === "string"   ? body.eventName.trim()   : undefined,
-      status:      typeof body.status === "string"      ? (body.status as never)  : undefined,
+      status:      body.status !== undefined            ? (body.status as (typeof STATUSES)[number]) : undefined,
       eventDate:   body.eventDate   ? new Date(body.eventDate as string)   : undefined,
       expiryDate:  body.expiryDate  ? new Date(body.expiryDate as string)  : undefined,
       description: typeof body.description === "string" ? body.description.trim() : undefined,
@@ -79,4 +84,43 @@ export async function PATCH(req: Request, { params }: Props) {
   })
 
   return NextResponse.json(updated)
+}
+
+// Only events that never produced a certificate can be deleted. Once certificates
+// exist their links (and printed QR codes) are in use and they count toward the
+// monthly quota, so those events can only be archived.
+export async function DELETE(_req: Request, { params }: Props) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { eventCode } = await params
+
+  const organizer = await prisma.organizer.findUnique({
+    where: { userId: session.user.id },
+    select: { organizerCd: true },
+  })
+  if (!organizer) return NextResponse.json({ error: "Organizer not found" }, { status: 404 })
+
+  const event = await prisma.event.findUnique({
+    where: { eventCode },
+    select: { organizerCd: true, _count: { select: { certificates: true } } },
+  })
+  if (!event || event.organizerCd !== organizer.organizerCd) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 })
+  }
+  if (event._count.certificates > 0) {
+    return NextResponse.json(
+      { error: "This event has certificates, so it can't be deleted. Archive it instead." },
+      { status: 409 }
+    )
+  }
+
+  const result = await prisma.event.deleteMany({
+    where: { eventCode, organizerCd: organizer.organizerCd, certificates: { none: {} } },
+  })
+  if (result.count === 0) {
+    return NextResponse.json({ error: "This event has certificates, so it can't be deleted. Archive it instead." }, { status: 409 })
+  }
+
+  return NextResponse.json({ success: true })
 }

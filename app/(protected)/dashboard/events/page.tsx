@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Plus, CalendarDays, Users, Clock, FileText } from "lucide-react"
 import { InfoTip } from "@/components/info-tip"
 import { DuplicateEventButton } from "./DuplicateEventButton"
+import { EventCardActions } from "./EventCardActions"
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
   DRAFT:     { label: "Draft",     bg: "rgba(148,163,184,0.12)", color: "#94A3B8" },
@@ -15,7 +16,11 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   ARCHIVED:  { label: "Archived",  bg: "rgba(148,163,184,0.08)", color: "#64748B" },
 }
 
-export default async function EventsPage() {
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ show?: string }>
+}) {
   const session = await getCurrentSession()
   if (!session) redirect("/login")
 
@@ -30,6 +35,12 @@ export default async function EventsPage() {
       _count: { select: { certificates: true } },
     },
   })
+
+  const { show } = await searchParams
+  const showArchived = show === "archived"
+  const archivedCount = events.filter((e: typeof events[number]) => e.status === "ARCHIVED").length
+  const activeCount = events.length - archivedCount
+  const visibleEvents = events.filter((e: typeof events[number]) => (e.status === "ARCHIVED") === showArchived)
 
   const fmt = (d: Date | null) =>
     d ? new Intl.DateTimeFormat("en-MY", { day: "numeric", month: "short", year: "numeric" }).format(d) : "—"
@@ -47,7 +58,7 @@ export default async function EventsPage() {
             </InfoTip>
           </h1>
           <p className="text-xs" style={{ color: "var(--ct-text-3)" }}>
-            {events.length} event{events.length !== 1 ? "s" : ""}
+            {visibleEvents.length} {showArchived ? "archived " : ""}event{visibleEvents.length !== 1 ? "s" : ""}
           </p>
         </div>
         <Link href="/dashboard/events/new">
@@ -64,25 +75,45 @@ export default async function EventsPage() {
       </header>
 
       <div className="flex-1 p-8">
-        {events.length === 0 ? (
+        {archivedCount > 0 || showArchived ? (
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {[
+              { label: `Active (${activeCount})`, href: "/dashboard/events", on: !showArchived },
+              { label: `Archived (${archivedCount})`, href: "/dashboard/events?show=archived", on: showArchived },
+            ].map(t => (
+              <Link key={t.label} href={t.href} style={{
+                padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600, textDecoration: "none",
+                background: t.on ? "var(--ct-blue-dim)" : "transparent",
+                border: `1px solid ${t.on ? "rgba(37,99,235,0.35)" : "var(--ct-border)"}`,
+                color: t.on ? "#93C5FD" : "var(--ct-text-2)",
+              }}>
+                {t.label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+
+        {visibleEvents.length === 0 ? (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
             justifyContent: "center", height: 300, gap: 12,
           }}>
             <CalendarDays size={32} style={{ color: "var(--ct-text-3)" }} />
-            <p style={{ color: "var(--ct-text-2)", fontSize: 14 }}>No events yet</p>
-            <Link href="/dashboard/events/new">
+            <p style={{ color: "var(--ct-text-2)", fontSize: 14 }}>
+              {showArchived ? "No archived events" : "No events yet"}
+            </p>
+            {showArchived ? null : <Link href="/dashboard/events/new">
               <button style={{
                 padding: "8px 16px", background: "var(--ct-blue)", color: "white",
                 border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer",
               }}>
                 Create your first event
               </button>
-            </Link>
+            </Link>}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {events.map((ev: typeof events[number]) => {
+            {visibleEvents.map((ev: typeof events[number]) => {
               const badge = STATUS_BADGE[ev.status] ?? STATUS_BADGE.DRAFT
               return (
                 <Link key={ev.eventCode} href={`/dashboard/events/${ev.eventCode}`}
@@ -142,6 +173,13 @@ export default async function EventsPage() {
 
                     {/* Duplicate */}
                     <DuplicateEventButton eventCode={ev.eventCode} />
+                    <EventCardActions
+                      eventCode={ev.eventCode}
+                      eventName={ev.eventName}
+                      archived={ev.status === "ARCHIVED"}
+                      restoreStatus={ev.issuedDate ? "ACTIVE" : "DRAFT"}
+                      certificateCount={ev._count.certificates}
+                    />
                   </div>
                 </Link>
               )
