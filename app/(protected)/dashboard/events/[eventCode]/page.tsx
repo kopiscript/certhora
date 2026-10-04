@@ -73,6 +73,10 @@ export default async function EventDetailPage({ params }: Props) {
 
   const badge = STATUS_BADGE[event.status] ?? STATUS_BADGE.DRAFT
   const pendingCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "PENDING").length
+  const customFields = ((event.template?.additional ?? []) as unknown as { label?: string; value?: string }[])
+    .filter(p => typeof p.label === "string" && p.label.trim())
+    .map(p => ({ label: (p.label as string).trim(), defaultValue: p.value ?? "" }))
+
   const printableCount = event.certificates.length - pendingCount
   const sentCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "SENT").length
   const queuedCount = event.certificates.filter((c: typeof event.certificates[number]) => c.emailStatus === "QUEUED").length
@@ -265,7 +269,7 @@ export default async function EventDetailPage({ params }: Props) {
                 The PDF is the cleanest option because it has no date or web address on the page.
               </InfoTip>
             </p>
-            <AddParticipantsButton eventCode={eventCode} />
+            <AddParticipantsButton eventCode={eventCode} fields={customFields} />
           </div>
 
           {pendingCount > 0 && (

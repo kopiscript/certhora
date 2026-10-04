@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { UserPlus } from "lucide-react"
-import { AddParticipantsModal } from "./AddParticipantsModal"
+import { AddParticipantsModal, type CustomField } from "./AddParticipantsModal"
 
-export function AddParticipantsButton({ eventCode }: { eventCode: string }) {
+export function AddParticipantsButton({ eventCode, fields = [] }: { eventCode: string; fields?: CustomField[] }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -18,7 +18,7 @@ export function AddParticipantsButton({ eventCode }: { eventCode: string }) {
       }}>
         <UserPlus size={12} /> Add Participants
       </button>
-      {open && <AddParticipantsModal eventCode={eventCode} onClose={() => setOpen(false)} />}
+      {open && <AddParticipantsModal eventCode={eventCode} fields={fields} onClose={() => setOpen(false)} />}
     </>
   )
 }

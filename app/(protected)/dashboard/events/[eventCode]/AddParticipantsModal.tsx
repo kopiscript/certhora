@@ -11,13 +11,20 @@ interface Row {
   metadata?: Record<string, string>
 }
 
+export interface CustomField {
+  label: string
+  defaultValue: string
+}
+
 const emptyRows = (): Row[] => [{ name: "", email: "" }, { name: "", email: "" }]
 
 export function AddParticipantsModal({
   eventCode,
+  fields = [],
   onClose,
 }: {
   eventCode: string
+  fields?: CustomField[]
   onClose: () => void
 }) {
   const router = useRouter()
@@ -31,6 +38,9 @@ export function AddParticipantsModal({
 
   const updateRow = (i: number, field: keyof Row, value: string) => {
     setRows(prev => prev.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)))
+  }
+  const updateMeta = (i: number, label: string, value: string) => {
+    setRows(prev => prev.map((r, idx) => (idx === i ? { ...r, metadata: { ...r.metadata, [label]: value } } : r)))
   }
   const addRow = () => setRows(prev => [...prev, { name: "", email: "" }])
   const removeRow = (i: number) => setRows(prev => prev.filter((_, idx) => idx !== i))
@@ -103,7 +113,17 @@ export function AddParticipantsModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          participants: validRows.map(r => ({ name: r.name.trim(), email: r.email.trim(), metadata: r.metadata })),
+          participants: validRows.map(r => {
+            const metadata: Record<string, string> = {}
+            for (const [k, v] of Object.entries(r.metadata ?? {})) {
+              if (v.trim()) metadata[k] = v.trim()
+            }
+            return {
+              name: r.name.trim(),
+              email: r.email.trim(),
+              metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+            }
+          }),
         }),
       })
       const data = await res.json()
@@ -167,7 +187,11 @@ export function AddParticipantsModal({
           {mode === "manual" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {rows.map((row, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div key={i} style={fields.length > 0 ? {
+                  display: "flex", flexDirection: "column", gap: 8, padding: 10,
+                  border: "1px solid var(--ct-border)", borderRadius: 10,
+                } : undefined}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input
                     className="ct-input"
                     placeholder="Full name"
@@ -199,6 +223,24 @@ export function AddParticipantsModal({
                     <Trash2 size={12} />
                   </button>
                 </div>
+                {fields.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8 }}>
+                    {fields.map(f => (
+                      <label key={f.label} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--ct-text-3)" }}>
+                          {f.label}
+                        </span>
+                        <input
+                          className="ct-input"
+                          placeholder={f.defaultValue ? `Default: ${f.defaultValue}` : "Optional"}
+                          value={row.metadata?.[f.label] ?? ""}
+                          onChange={e => updateMeta(i, f.label, e.target.value)}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+                </div>
               ))}
               <button onClick={addRow} style={{
                 display: "flex", alignItems: "center", gap: 6, alignSelf: "flex-start",
@@ -224,6 +266,12 @@ export function AddParticipantsModal({
                   Must include a &quot;name&quot; and &quot;email&quot; column. Other columns
                   auto-fill matching text placeholders in the certificate design.
                 </span>
+                {fields.length > 0 && (
+                  <span style={{ fontSize: 11, color: "var(--ct-text-2)", textAlign: "center" }}>
+                    This event&apos;s design has these custom fields. Name the CSV columns the same to fill them:{" "}
+                    <strong>{fields.map(f => f.label).join(", ")}</strong>
+                  </span>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"
