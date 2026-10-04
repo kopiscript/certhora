@@ -1,6 +1,6 @@
 import sharp from "sharp"
 import QRCode from "qrcode"
-import { rasterizeSvg } from "./fonts/embed"
+import { rasterizeSvg, measureTextWidth100 } from "./fonts/embed"
 
 // Canonical certificate canvas. The template editor's drag positions (nameCenterX,
 // nameY, qrX, qrY, ...) are stored in this coordinate space, so every uploaded
@@ -103,36 +103,79 @@ export interface WrappedName {
   lines: string[]
 }
 
-function greedyWrap(words: string[], maxCharsPerLine: number): string[] {
-  const lines: string[] = []
-  let current = ""
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word
-    if (candidate.length <= maxCharsPerLine || !current) {
-      current = candidate
-    } else {
-      lines.push(current)
-      current = word
-    }
-  }
-  if (current) lines.push(current)
-  return lines
+// Measured width of a word at `fontSize`, using the same fonts the certificate is drawn
+// with. Falls back to the old per-character estimate if measuring isn't possible.
+function textWidth(text: string, fontSize: number, font: string, bold: boolean): number {
+  const w100 = measureTextWidth100(text, font, bold)
+  return w100 === null ? text.length * fontSize * CHAR_WIDTH_RATIO : (w100 * fontSize) / 100
 }
 
-export function wrapNameText(name: string, defaultFontSize: number, maxWidth: number): WrappedName {
-  const words = name.split(/\s+/).filter(Boolean)
-  if (words.length <= 1) return { fontSize: defaultFontSize, lines: [name] }
+function spaceWidth(fontSize: number, font: string, bold: boolean): number {
+  const withSpace = measureTextWidth100("a a", font, bold)
+  const without = measureTextWidth100("aa", font, bold)
+  if (withSpace === null || without === null) return fontSize * 0.3
+  return ((withSpace - without) * fontSize) / 100
+}
 
-  for (let fontSize = defaultFontSize; fontSize >= MIN_FONT_SIZE; fontSize--) {
-    const maxCharsPerLine = Math.max(1, Math.floor(maxWidth / (fontSize * CHAR_WIDTH_RATIO)))
-    const lines = greedyWrap(words, maxCharsPerLine)
-    if (lines.length <= MAX_NAME_LINES) return { fontSize, lines }
+// Keeps text inside a box the way a design tool does: wraps at word boundaries and shrinks
+// the font size (never the font itself) until every line fits the box width, using real
+// measured glyph widths. Prefers the largest size that fits within MAX_NAME_LINES lines. A
+// single long word can't wrap, so it just shrinks until it fits.
+export function wrapNameText(
+  name: string,
+  defaultFontSize: number,
+  maxWidth: number,
+  font = "Arial, Helvetica, sans-serif",
+  bold = true
+): WrappedName {
+  const words = name.split(/\s+/).filter(Boolean)
+  if (words.length === 0) return { fontSize: defaultFontSize, lines: [name] }
+
+  // Small safety margin so rounding and kerning never push a line past the box edge.
+  const limit = maxWidth * 0.98
+
+  const wrapAt = (fontSize: number): { lines: string[]; widest: number } => {
+    const space = spaceWidth(fontSize, font, bold)
+    const lines: string[] = []
+    let current = ""
+    let currentWidth = 0
+    let widest = 0
+    for (const word of words) {
+      const w = textWidth(word, fontSize, font, bold)
+      if (!current) {
+        current = word
+        currentWidth = w
+      } else if (currentWidth + space + w <= limit) {
+        current = `${current} ${word}`
+        currentWidth += space + w
+      } else {
+        lines.push(current)
+        widest = Math.max(widest, currentWidth)
+        current = word
+        currentWidth = w
+      }
+    }
+    if (current) {
+      lines.push(current)
+      widest = Math.max(widest, currentWidth)
+    }
+    return { lines, widest }
   }
 
-  // Even at the smallest allowed font size it needs more than MAX_NAME_LINES — accept
-  // that as the best available fit rather than shrinking below a legible size.
-  const maxCharsPerLine = Math.max(1, Math.floor(maxWidth / (MIN_FONT_SIZE * CHAR_WIDTH_RATIO)))
-  return { fontSize: MIN_FONT_SIZE, lines: greedyWrap(words, maxCharsPerLine) }
+  for (let fontSize = Math.round(defaultFontSize); fontSize >= MIN_FONT_SIZE; fontSize--) {
+    const { lines, widest } = wrapAt(fontSize)
+    if (lines.length <= MAX_NAME_LINES && widest <= limit) return { fontSize, lines }
+  }
+
+  // Doesn't fit even at the minimum size within the line budget (e.g. one extremely long
+  // word). Shrink further, below the usual minimum, so it still stays inside the box.
+  let fontSize = MIN_FONT_SIZE
+  let fit = wrapAt(fontSize)
+  while ((fit.widest > limit || fit.lines.length > MAX_NAME_LINES) && fontSize > 6) {
+    fontSize -= 1
+    fit = wrapAt(fontSize)
+  }
+  return { fontSize, lines: fit.lines }
 }
 
 // ─── XML escape ───────────────────────────────────────────────────────────────
@@ -164,7 +207,7 @@ function buildNameSVG(
   name: string,
   layout: NameLayout
 ): Buffer {
-  const { fontSize, lines } = wrapNameText(name, layout.defaultFontSize, layout.maxWidth)
+  const { fontSize, lines } = wrapNameText(name, layout.defaultFontSize, layout.maxWidth, layout.nameFont, true)
   const lineHeight = fontSize * LINE_HEIGHT_RATIO
   const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
 
@@ -367,7 +410,7 @@ function buildAdditionalsSVG(
     // A designated maxWidth means this value can be long enough to need wrapping (e.g. a
     // per-certificate paper title) rather than overflowing past the box on one line.
     if (p.maxWidth) {
-      const wrapped = wrapNameText(value, fontSize, safeNum(p.maxWidth, 400))
+      const wrapped = wrapNameText(value, fontSize, safeNum(p.maxWidth, 400), p.font, !!p.bold)
       const lineHeight = wrapped.fontSize * LINE_HEIGHT_RATIO
       const firstLineY = y - ((wrapped.lines.length - 1) * lineHeight) / 2
       const tspans = wrapped.lines

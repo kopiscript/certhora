@@ -1,39 +1,9 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
 import { uploadToR2 } from "@/lib/r2"
-import {
-  generateCertificateBatch,
-  buildProceduralTemplate,
-  CERT_W,
-  CERT_H,
-  type NameLayout,
-  type QRLayout,
-  type CertDesign,
-  type URLConfig,
-  type AdditionalPlaceholder,
-} from "@/lib/certificate-generator"
-import sharp from "sharp"
+import { generateCertificateBatch } from "@/lib/certificate-generator"
+import { loadRenderContext, buildDynamicValues } from "@/lib/render-certificate"
 import { applyPendingTierChange, applyExpiredSubscription } from "@/lib/billing"
-
-// Maps a participant's CSV-supplied extra columns (Certificate.metadata, keyed by
-// raw column header) onto the template's text placeholders by matching column
-// header to placeholder label case-insensitively — e.g. a "Track" column fills
-// a placeholder labeled "Track". Falls back to the placeholder's static value
-// when no matching column was supplied.
-function buildDynamicValues(
-  metadata: unknown,
-  placeholders: AdditionalPlaceholder[]
-): Record<string, string> | undefined {
-  if (!metadata || typeof metadata !== "object" || placeholders.length === 0) return undefined
-
-  const entries = Object.entries(metadata as Record<string, unknown>)
-  const dynamicValues: Record<string, string> = {}
-  for (const ph of placeholders) {
-    const match = entries.find(([key]) => key.trim().toLowerCase() === ph.label.trim().toLowerCase())
-    if (match && match[1]) dynamicValues[ph.id] = String(match[1])
-  }
-  return Object.keys(dynamicValues).length > 0 ? dynamicValues : undefined
-}
 
 export interface GenerateOutcome {
   generated: number
@@ -93,63 +63,14 @@ export async function generatePendingCertificates(
     }
   }
 
-  // ── Build template buffer ─────────────────────────────────────────────────
-  let templateBuffer: Buffer
-
-  if (event.template?.imageUrl) {
-    try {
-      const res = await fetch(
-        event.template.imageUrl.startsWith("/")
-          ? `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}${event.template.imageUrl}`
-          : event.template.imageUrl
-      )
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const svgOrImage = Buffer.from(await res.arrayBuffer())
-      // Normalize to the canonical canvas so overlay coordinates (stored in
-      // 1200×840 space by the template editor) land in the right spot
-      // regardless of the uploaded image's native resolution.
-      templateBuffer = await sharp(svgOrImage)
-        .resize(CERT_W, CERT_H, { fit: "cover" })
-        .png()
-        .toBuffer()
-    } catch (err) {
-      return { generated: 0, results: [], error: `Failed to load template image: ${(err as Error).message}` }
-    }
-  } else {
-    const svg = buildProceduralTemplate({
-      eventName: event.eventName,
-      organizerName: event.organizer.orgName,
-      primaryColor: event.template?.primaryColor ?? "#1D4ED8",
-    })
-    templateBuffer = await sharp(svg).png().toBuffer()
+  // ── Template + layout (shared with the live preview) ──────────────────────
+  let ctx
+  try {
+    ctx = await loadRenderContext(event)
+  } catch (err) {
+    return { generated: 0, results: [], error: (err as Error).message }
   }
-
-  // ── Layout config (from template or defaults) ─────────────────────────────
-  const tpl = event.template
-  const nameLayout: NameLayout = {
-    centerX:       tpl?.nameCenterX  ?? 600,
-    y:             tpl?.nameY        ?? 340,
-    maxWidth:      tpl?.nameMaxWidth ?? 840,
-    defaultFontSize: tpl?.nameFontSize ?? 52,
-    nameFont:      tpl?.nameFont     ?? "Arial, Helvetica, sans-serif",
-    nameColor:     tpl?.nameColor    ?? "#1E293B",
-  }
-  const qrLayout: QRLayout = {
-    x:    tpl?.qrX    ?? 1010,
-    y:    tpl?.qrY    ?? 628,
-    size: tpl?.qrSize ?? 140,
-  }
-  const design: CertDesign = {
-    certIdFont:   tpl?.certIdFont   ?? "monospace",
-    certIdColor:  tpl?.certIdColor  ?? "#64748B",
-    showWatermark: tpl?.showWatermark ?? false,
-  }
-  const urlConfig: URLConfig = {
-    baseUrl:      process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-    viewPageName: "view",
-  }
-
-  const additional = (tpl?.additional ?? []) as unknown as AdditionalPlaceholder[]
+  const { templateBuffer, nameLayout, qrLayout, design, urlConfig, additional } = ctx
 
   // ── Generate ──────────────────────────────────────────────────────────────
   let outputs

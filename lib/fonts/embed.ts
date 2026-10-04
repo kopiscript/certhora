@@ -57,3 +57,44 @@ export function rasterizeSvg(svg: string): Buffer {
   })
   return Buffer.from(resvg.render().asPng())
 }
+
+const widthCache = new Map<string, number>()
+
+function escapeForSvg(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+}
+
+// Rendered width of `text` at a 100px font size, measured with the exact same fonts and
+// renderer the certificate is drawn with. Text width scales linearly with font size, so
+// callers multiply by (fontSize / 100). Returns null if the renderer can't measure it.
+export function measureTextWidth100(text: string, fontFamily: string, bold: boolean): number | null {
+  const key = `${bold ? "b" : "r"}|${fontFamily}|${text}`
+  const cached = widthCache.get(key)
+  if (cached !== undefined) return cached
+
+  try {
+    const [regularPath, boldPath] = getFontFiles()
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40000" height="400"><text x="0" y="250" font-family="${escapeForSvg(fontFamily)}" font-size="100"${bold ? ' font-weight="bold"' : ""}>${escapeForSvg(text)}</text></svg>`
+    const resvg = new Resvg(svg, {
+      font: {
+        loadSystemFonts: false,
+        fontFiles: [regularPath, boldPath],
+        defaultFontFamily: "Geist",
+        sansSerifFamily: "Geist",
+        cursiveFamily: "Geist",
+        fantasyFamily: "Geist",
+      },
+    })
+    const box = resvg.getBBox()
+    if (!box || !Number.isFinite(box.width) || box.width <= 0) return null
+    widthCache.set(key, box.width)
+    return box.width
+  } catch {
+    return null
+  }
+}
