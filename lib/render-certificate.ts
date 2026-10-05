@@ -101,6 +101,7 @@ export async function loadRenderContext(
       centerX: tpl?.nameCenterX ?? 600,
       y: tpl?.nameY ?? 340,
       maxWidth: tpl?.nameMaxWidth ?? 840,
+      maxHeight: tpl?.nameHeight ?? null,
       defaultFontSize: tpl?.nameFontSize ?? 52,
       nameFont: tpl?.nameFont ?? "Arial, Helvetica, sans-serif",
       nameColor: tpl?.nameColor ?? "#1E293B",

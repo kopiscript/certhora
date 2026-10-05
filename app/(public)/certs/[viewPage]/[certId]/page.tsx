@@ -26,6 +26,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+// Long names (multi-part or very long single words) shrink in steps so the heading
+// stays comfortably inside its column instead of dominating or overflowing it.
+function nameFontSize(name: string): string {
+  const len = name.trim().length
+  if (len <= 24) return 'clamp(24px, 4vw, 34px)'
+  if (len <= 36) return 'clamp(22px, 3.4vw, 29px)'
+  if (len <= 52) return 'clamp(19px, 2.8vw, 24px)'
+  return 'clamp(16px, 2.3vw, 20px)'
+}
+
 const fmt = (d: Date | null | undefined) =>
   d ? new Intl.DateTimeFormat('en-MY', { day: 'numeric', month: 'long', year: 'numeric' }).format(d) : null
 
@@ -205,12 +215,14 @@ export default async function CertViewPage({ params }: Props) {
 
               <h1
                 style={{
-                  fontSize: 'clamp(24px, 4vw, 34px)',
+                  fontSize: nameFontSize(cert.participantName),
                   fontWeight: 800,
                   color: 'var(--ct-text)',
-                  lineHeight: 1.15,
+                  lineHeight: 1.2,
                   letterSpacing: '-0.02em',
                   margin: '0 0 8px',
+                  overflowWrap: 'anywhere',
+                  textWrap: 'balance',
                 }}
               >
                 {cert.participantName}

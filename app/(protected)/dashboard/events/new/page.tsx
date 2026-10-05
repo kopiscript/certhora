@@ -60,6 +60,7 @@ export default function NewEventPage() {
             nameCenterX: data.template.nameCenterX,
             nameY: data.template.nameY,
             nameMaxWidth: data.template.nameMaxWidth,
+            nameHeight: data.template.nameHeight ?? null,
             nameFontSize: data.template.nameFontSize,
             nameFont: data.template.nameFont,
             nameColor: data.template.nameColor,

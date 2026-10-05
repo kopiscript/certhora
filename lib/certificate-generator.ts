@@ -16,6 +16,9 @@ export interface NameLayout {
   centerX: number
   y: number
   maxWidth: number
+  // Optional box height. When set, the name wraps over as many lines as it needs and
+  // shrinks until the whole block fits inside the box; unset keeps the 3-line default.
+  maxHeight?: number | null
   defaultFontSize: number
   nameColor: string
   nameFont: string
@@ -126,13 +129,18 @@ export function wrapNameText(
   defaultFontSize: number,
   maxWidth: number,
   font = "Arial, Helvetica, sans-serif",
-  bold = true
+  bold = true,
+  maxHeight?: number | null
 ): WrappedName {
   const words = name.split(/\s+/).filter(Boolean)
   if (words.length === 0) return { fontSize: defaultFontSize, lines: [name] }
 
   // Small safety margin so rounding and kerning never push a line past the box edge.
   const limit = maxWidth * 0.98
+  const heightLimit = maxHeight && maxHeight > 0 ? maxHeight * 0.98 : null
+  const lineBudget = heightLimit ? 8 : MAX_NAME_LINES
+  const fitsHeight = (lineCount: number, fontSize: number) =>
+    heightLimit === null || lineCount * fontSize * LINE_HEIGHT_RATIO <= heightLimit
 
   const wrapAt = (fontSize: number): { lines: string[]; widest: number } => {
     const space = spaceWidth(fontSize, font, bold)
@@ -164,14 +172,14 @@ export function wrapNameText(
 
   for (let fontSize = Math.round(defaultFontSize); fontSize >= MIN_FONT_SIZE; fontSize--) {
     const { lines, widest } = wrapAt(fontSize)
-    if (lines.length <= MAX_NAME_LINES && widest <= limit) return { fontSize, lines }
+    if (lines.length <= lineBudget && widest <= limit && fitsHeight(lines.length, fontSize)) return { fontSize, lines }
   }
 
   // Doesn't fit even at the minimum size within the line budget (e.g. one extremely long
   // word). Shrink further, below the usual minimum, so it still stays inside the box.
   let fontSize = MIN_FONT_SIZE
   let fit = wrapAt(fontSize)
-  while ((fit.widest > limit || fit.lines.length > MAX_NAME_LINES) && fontSize > 6) {
+  while ((fit.widest > limit || fit.lines.length > lineBudget || !fitsHeight(fit.lines.length, fontSize)) && fontSize > 6) {
     fontSize -= 1
     fit = wrapAt(fontSize)
   }
@@ -207,7 +215,7 @@ function buildNameSVG(
   name: string,
   layout: NameLayout
 ): Buffer {
-  const { fontSize, lines } = wrapNameText(name, layout.defaultFontSize, layout.maxWidth, layout.nameFont, true)
+  const { fontSize, lines } = wrapNameText(name, layout.defaultFontSize, layout.maxWidth, layout.nameFont, true, layout.maxHeight)
   const lineHeight = fontSize * LINE_HEIGHT_RATIO
   const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
 

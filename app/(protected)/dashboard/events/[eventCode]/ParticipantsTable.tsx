@@ -150,11 +150,24 @@ export function ParticipantsTable({ certificates, eventCode }: { certificates: C
                   {c.certId}
                 </Link>
               </td>
-              <td style={{ padding: "10px 14px", fontSize: 13, color: "var(--ct-text)" }}>
-                {c.participantName}
+              <td style={{ padding: "10px 14px", fontSize: 13, color: "var(--ct-text)", maxWidth: 300 }}>
+                <span
+                  title={c.participantName}
+                  style={{
+                    display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                    overflow: "hidden", overflowWrap: "anywhere", lineHeight: 1.35,
+                  }}
+                >
+                  {c.participantName}
+                </span>
               </td>
-              <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--ct-text-2)" }}>
-                {c.participantEmail}
+              <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--ct-text-2)", maxWidth: 240 }}>
+                <span
+                  title={c.participantEmail}
+                  style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                >
+                  {c.participantEmail}
+                </span>
               </td>
               <td style={{ padding: "10px 14px" }}>
                 <span style={{

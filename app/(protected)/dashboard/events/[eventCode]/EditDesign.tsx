@@ -14,6 +14,7 @@ interface TemplateData {
   nameCenterX: number
   nameY: number
   nameMaxWidth: number
+  nameHeight: number | null
   nameFontSize: number
   nameFont: string
   nameColor: string
@@ -42,6 +43,7 @@ export function EditDesign({ eventCode, template }: Props) {
     nameCenterX:  template?.nameCenterX  ?? DEFAULT_LAYOUT.nameCenterX,
     nameY:        template?.nameY        ?? DEFAULT_LAYOUT.nameY,
     nameMaxWidth: template?.nameMaxWidth ?? DEFAULT_LAYOUT.nameMaxWidth,
+    nameHeight:   template?.nameHeight ?? null,
     nameFontSize: template?.nameFontSize ?? DEFAULT_LAYOUT.nameFontSize,
     nameFont:     template?.nameFont     ?? DEFAULT_LAYOUT.nameFont,
     nameColor:    template?.nameColor    ?? DEFAULT_LAYOUT.nameColor,

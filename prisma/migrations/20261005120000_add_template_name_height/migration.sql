@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "nameHeight" DOUBLE PRECISION;

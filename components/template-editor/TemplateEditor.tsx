@@ -31,6 +31,7 @@ export interface TemplateLayout {
   nameCenterX: number
   nameY: number
   nameMaxWidth: number
+  nameHeight: number | null
   nameFontSize: number
   nameFont: string
   nameColor: string
@@ -45,7 +46,7 @@ export interface TemplateLayout {
 }
 
 export const DEFAULT_LAYOUT: TemplateLayout = {
-  nameCenterX: 600, nameY: 340, nameMaxWidth: 840, nameFontSize: 52,
+  nameCenterX: 600, nameY: 340, nameMaxWidth: 840, nameHeight: null, nameFontSize: 52,
   nameFont: "Arial, Helvetica, sans-serif", nameColor: "#1E293B",
   qrX: 1010, qrY: 628, qrSize: 140,
   certIdFont: "monospace", certIdColor: "#64748B",
@@ -59,7 +60,7 @@ interface Props {
   onChange: (layout: TemplateLayout, imageUrl: string | null) => void
 }
 
-type DragTarget = { kind: "name" | "qr" } | { kind: "additional"; id: string } | null
+type DragTarget = { kind: "name" | "qr" | "name-resize" | "name-resize-v" } | { kind: "additional"; id: string } | null
 type Guide = { axis: "h" | "v"; pos: number }
 
 const SNAP = 10 // snap threshold in physical px
@@ -152,6 +153,27 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
       const { target, ox, oy } = dragRef.current
+
+      // Resizing the name box: it stays centred, so the new width is twice the
+      // distance from the box centre to the cursor.
+      if (target?.kind === "name-resize") {
+        const centre = layoutRef.current.nameCenterX
+        let width = Math.abs(mx / SCALE - centre) * 2
+        const snaps = [CERT_W, CERT_W * 0.8, CERT_W * 0.7, CERT_W * 0.6, CERT_W * 0.5]
+        const hit = snaps.find(sp => Math.abs(width - sp) < SNAP)
+        if (hit) width = hit
+        width = Math.max(120, Math.min(width, CERT_W))
+        setLayout(p => ({ ...p, nameMaxWidth: Math.round(width) }))
+        return
+      }
+
+      if (target?.kind === "name-resize-v") {
+        const centreY = layoutRef.current.nameY
+        const height = Math.max(30, Math.min(Math.abs(my / SCALE - centreY) * 2, CERT_H))
+        setLayout(p => ({ ...p, nameHeight: Math.round(height) }))
+        return
+      }
+
       let cx = Math.max(0, Math.min((mx - ox) / SCALE, CERT_W))
       let cy = Math.max(0, Math.min((my - oy) / SCALE, CERT_H))
 
@@ -329,24 +351,53 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
               background: "rgba(37,99,235,0.06)",
               whiteSpace: "nowrap",
               width: layout.nameMaxWidth * SCALE,
+              ...(layout.nameHeight
+                ? { height: layout.nameHeight * SCALE, display: "flex", alignItems: "center", justifyContent: "center" }
+                : {}),
               boxSizing: "border-box",
               textAlign: "center",
-              overflow: "hidden",
             }}
           >
+            {(["top", "bottom"] as const).map(side => (
+              <div
+                key={side}
+                onMouseDown={e => onMouseDown(e, { kind: "name-resize-v" })}
+                title="Drag to change the text box height"
+                style={{
+                  position: "absolute", left: "50%", [side]: -6,
+                  width: 22, height: 10, marginLeft: -11,
+                  borderRadius: 3, background: "#2563EB", border: "1.5px solid white",
+                  cursor: "ns-resize", zIndex: 2,
+                }}
+              />
+            ))}
+            {(["left", "right"] as const).map(side => (
+              <div
+                key={side}
+                onMouseDown={e => onMouseDown(e, { kind: "name-resize" })}
+                title="Drag to change the text box width"
+                style={{
+                  position: "absolute", top: "50%", [side]: -6,
+                  width: 10, height: 22, marginTop: -11,
+                  borderRadius: 3, background: "#2563EB", border: "1.5px solid white",
+                  cursor: "ew-resize", zIndex: 2,
+                }}
+              />
+            ))}
             <span style={{
               fontSize: layout.nameFontSize * SCALE,
               fontFamily: layout.nameFont,
               color: layout.nameColor,
               fontWeight: "bold",
               display: "block",
+              maxWidth: "100%",
               textOverflow: "ellipsis",
               overflow: "hidden",
             }}>
               Participant Name
             </span>
             <div style={{
-              position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)",
+              position: "absolute", top: -8, left: 8,
               background: "#2563EB", borderRadius: 3, padding: "1px 5px",
               fontSize: 9, color: "white", fontWeight: 600, letterSpacing: 0.5,
               pointerEvents: "none",
@@ -510,6 +561,30 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
           <Field label="Text width (% of certificate)">
             <NumInput value={Math.round((layout.nameMaxWidth / CERT_W) * 100)} min={10} max={100}
               onChange={v => updateLayout({ nameMaxWidth: Math.round((v / 100) * CERT_W) })} />
+          </Field>
+          <Field label="Text height (px)">
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input
+                type="number" min={30} max={CERT_H} placeholder="Auto"
+                value={layout.nameHeight ?? ""}
+                onChange={e => updateLayout({ nameHeight: e.target.value === "" ? null : Number(e.target.value) })}
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={() => updateLayout({ nameHeight: null })}
+                disabled={layout.nameHeight === null}
+                title="Go back to the automatic height"
+                style={{
+                  height: 32, padding: "0 10px", borderRadius: 6, fontSize: 12,
+                  border: "1px solid var(--ct-border)", background: "transparent",
+                  color: "var(--ct-text-2)", cursor: layout.nameHeight === null ? "not-allowed" : "pointer",
+                  opacity: layout.nameHeight === null ? 0.5 : 1,
+                }}
+              >
+                Auto
+              </button>
+            </div>
           </Field>
         </Section>
 

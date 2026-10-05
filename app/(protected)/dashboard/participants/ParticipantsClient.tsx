@@ -804,7 +804,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
                   </td>
 
                   {/* Participant info */}
-                  <td style={{ padding: '12px 16px', minWidth: 220 }}>
+                  <td style={{ padding: '12px 16px', minWidth: 220, maxWidth: 360 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
                         width: 32, height: 32, borderRadius: 8, flexShrink: 0,
@@ -814,11 +814,18 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
                       }}>
                         {row.participantName.charAt(0).toUpperCase()}
                       </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontWeight: 500, color: 'var(--ct-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <p
+                          title={row.participantName}
+                          style={{
+                            fontWeight: 500, color: 'var(--ct-text)', lineHeight: 1.35,
+                            overflowWrap: 'anywhere', overflow: 'hidden',
+                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          }}
+                        >
                           {row.participantName}
                         </p>
-                        <p style={{ fontSize: 12, color: 'var(--ct-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+                        <p title={row.participantEmail} style={{ fontSize: 12, color: 'var(--ct-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
                           {row.participantEmail}
                         </p>
                       </div>

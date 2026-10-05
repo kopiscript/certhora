@@ -63,6 +63,7 @@ interface TemplateInput {
   nameCenterX?: number
   nameY?: number
   nameMaxWidth?: number
+  nameHeight?: number | null
   nameFontSize?: number
   nameFont?: string
   nameColor?: string
@@ -144,6 +145,7 @@ export async function POST(req: Request) {
         nameCenterX:  template?.nameCenterX  ?? 600,
         nameY:        template?.nameY        ?? 340,
         nameMaxWidth: template?.nameMaxWidth ?? 840,
+        nameHeight:   template?.nameHeight ?? null,
         nameFontSize: template?.nameFontSize ?? 52,
         nameFont:     template?.nameFont     ?? "Arial, Helvetica, sans-serif",
         nameColor:    template?.nameColor    ?? "#1E293B",

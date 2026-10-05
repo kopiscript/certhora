@@ -157,6 +157,7 @@ model Template {
   nameCenterX  Float    @default(600)
   nameY        Float    @default(340)
   nameMaxWidth Float    @default(840)
+  nameHeight   Float?
   nameFontSize Float    @default(52)
   nameFont     String   @default("Arial, Helvetica, sans-serif") @db.VarChar(64)
   nameColor    String   @default("#1E293B") @db.VarChar(18)
