@@ -55,7 +55,7 @@ export function GenerateButton({
         title={
           pendingCount === 0 ? "Every participant already has a certificate."
           : pendingCount > quotaRemaining ? `Not enough monthly quota: ${pendingCount} needed, ${Math.max(0, quotaRemaining)} left. Upgrade on the Billing page.`
-          : "Creates the certificate images for people who don't have one yet. This uses your monthly quota. It does not send any email."
+          : "Creates the certificate images for people who don't have one yet. This uses your monthly quota. It does not send any email. Emails only go out when you click Send Emails."
         }
         style={{
         display: "flex", alignItems: "center", gap: 7,

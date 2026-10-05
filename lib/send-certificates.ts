@@ -10,7 +10,8 @@ const SEND_DELAY_MS = 300
 // Resend's free-plan account limit is 100 emails/day. Cap at 80 platform-wide
 // (across every organizer, not per-account) to leave headroom under that cap.
 // Anything beyond the cap is left QUEUED — it isn't lost, just picked up again
-// the next time anyone sends after the day rolls over (there's no cron here).
+// the next time an organizer clicks Send after the day rolls over. Nothing sends
+// automatically: emails only go out when someone presses a Send button.
 const DAILY_SEND_LIMIT = 80
 
 // Any status except SENT (and PENDING, which has no generated image yet)
