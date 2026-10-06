@@ -154,7 +154,7 @@ function EditModal({ cert, onClose, onSave }: EditModalProps) {
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div style={{
-        width: 420, background: 'var(--card)', border: '1px solid var(--ct-border-md)',
+        width: 420, maxWidth: 'calc(100vw - 32px)', background: 'var(--card)', border: '1px solid var(--ct-border-md)',
         borderRadius: 14, padding: 24, boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
       }}>
         {/* Header */}
@@ -261,7 +261,7 @@ function ExportDropdown({ allCerts, events, onClose }: ExportDropdownProps) {
   return (
     <div ref={ref} style={{
       position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50,
-      width: 280, background: 'var(--card)', border: '1px solid var(--ct-border-md)',
+      width: 280, maxWidth: 'calc(100vw - 32px)', background: 'var(--card)', border: '1px solid var(--ct-border-md)',
       borderRadius: 10, boxShadow: '0 12px 40px rgba(0,0,0,0.4)', padding: 14,
     }}>
       <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ct-text-3)', marginBottom: 10 }}>
@@ -546,7 +546,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 
       {/* ── Page Header ──────────────────────────────────────────────────────── */}
-      <header style={{
+      <header className="ct-page-header" style={{
         height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 32px', borderBottom: '1px solid var(--ct-border)', flexShrink: 0,
       }}>
@@ -564,7 +564,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
           {/* Send emails: manual selection takes priority over the per-event bulk send */}
           {(() => {
             const sendDisabled = !canSendEmails || sending || (selectedCount === 0 && queuedForEvent === 0)
@@ -647,7 +647,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
 
 
       {sendNotice && (
-        <div style={{
+        <div className="ct-banner" style={{
           padding: '10px 32px',
           borderBottom: '1px solid var(--ct-border)',
           background: 'rgba(251,191,36,0.08)',
@@ -659,7 +659,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
       )}
 
       {!canSendEmails && (
-        <div style={{
+        <div className="ct-banner" style={{
           padding: '10px 32px',
           borderBottom: '1px solid var(--ct-border)',
           background: 'rgba(96,165,250,0.08)',
@@ -671,7 +671,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
       )}
 
 {/* ── Filter Bar ───────────────────────────────────────────────────────── */}
-      <div style={{
+      <div className="ct-sticky-filter" style={{
         display: 'flex', flexWrap: 'wrap', gap: 10, padding: '14px 32px',
         borderBottom: '1px solid var(--ct-border)', flexShrink: 0,
         background: 'var(--background)',
@@ -753,7 +753,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
             )}
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table className="ct-cards" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--ct-border)' }}>
                 <th style={{
@@ -794,7 +794,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
                   onMouseLeave={e => (e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.014)')}
                 >
                   {/* Select */}
-                  <td style={{ padding: '12px 16px', width: 1 }}>
+                  <td className="ct-c-select" style={{ padding: '12px 16px', width: 1 }}>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(row.certId)}
@@ -804,7 +804,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
                   </td>
 
                   {/* Participant info */}
-                  <td style={{ padding: '12px 16px', minWidth: 220, maxWidth: 360 }}>
+                  <td className="ct-c-main" style={{ padding: '12px 16px', minWidth: 220, maxWidth: 360 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
                         width: 32, height: 32, borderRadius: 8, flexShrink: 0,
@@ -870,7 +870,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
                   </td>
 
                   {/* Actions */}
-                  <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                  <td className="ct-c-actions" style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                     <a
                       href={`/certs/view/${row.certId}`}
                       target="_blank"
@@ -913,7 +913,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
       </div>
 
       {/* ── Pagination Footer ─────────────────────────────────────────────────── */}
-      <div style={{
+      <div className="ct-footer-bar" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
         padding: '12px 32px', borderTop: '1px solid var(--ct-border)', flexShrink: 0,
         background: 'var(--background)',
@@ -926,7 +926,7 @@ export function ParticipantsClient({ events: propEvents, initialCerts, canSendEm
         </p>
 
         {/* Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           {/* Rows per page */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 12, color: 'var(--ct-text-3)', whiteSpace: 'nowrap' }}>Rows</span>

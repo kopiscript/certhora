@@ -47,7 +47,7 @@ export default async function EventsPage({
 
   return (
     <div className="flex flex-col flex-1">
-      <header className="h-16 flex items-center justify-between px-8 border-b shrink-0"
+      <header className="min-h-16 py-2 flex items-center justify-between gap-3 px-4 md:px-8 border-b shrink-0"
         style={{ borderColor: "var(--ct-border)" }}>
         <div>
           <h1 className="text-sm font-semibold flex items-center gap-1.5">
@@ -74,7 +74,7 @@ export default async function EventsPage({
         </Link>
       </header>
 
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-4 md:p-8">
         {archivedCount > 0 || showArchived ? (
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
             {[
@@ -132,7 +132,7 @@ export default async function EventsPage({
                     </div>
 
                     {/* Main info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="ct-ec-main" style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                         <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ct-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {ev.eventName}
@@ -161,7 +161,7 @@ export default async function EventsPage({
                     </div>
 
                     {/* Participant count */}
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div className="ct-ec-count" style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
                         <Users size={13} style={{ color: "var(--ct-text-3)" }} />
                         <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ct-text)" }}>

@@ -317,7 +317,7 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
 
       {/* ── Page Header ─────────────────────────────────────────────────────── */}
-      <header style={{
+      <header className="ct-page-header" style={{
         height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 32px', borderBottom: '1px solid var(--ct-border)', flexShrink: 0,
       }}>
@@ -337,7 +337,7 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
       </header>
 
       {/* ── Content ─────────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 24, overflowY: 'auto' }}>
+      <div className="ct-page-body" style={{ flex: 1, padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 24, overflowY: 'auto' }}>
 
         {/* ── Current Plan Card ──────────────────────────────────────────────── */}
         <div style={{
@@ -350,7 +350,7 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
           {/* Top accent bar */}
           <div style={{ height: 3, background: `linear-gradient(90deg, ${activeTier.color}, ${activeTier.color}88)` }} />
 
-          <div style={{
+          <div className="ct-stack-sm" style={{
             display: 'grid',
             gridTemplateColumns: '1fr auto',
             gap: 24, padding: '24px 28px',
@@ -388,7 +388,7 @@ export function BillingClient({ org: propOrg, transactions: propTxns, monthlyUse
               {/* Meta row */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
                 {org.expiryDate && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ct-text-3)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 6px', fontSize: 12, color: 'var(--ct-text-3)' }}>
                     <Calendar size={13} style={{ color: activeTier.color, opacity: 0.8 }} />
                     Expires on <span style={{ color: 'var(--ct-text-2)', fontWeight: 500, marginLeft: 3 }}>{fmtDate(org.expiryDate)}</span>
                     <span style={{ marginLeft: 3 }}>— no auto-renewal, pay again before then to keep this plan</span>

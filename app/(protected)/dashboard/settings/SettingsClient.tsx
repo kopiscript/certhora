@@ -396,7 +396,7 @@ export function SettingsClient({ initial }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
 
       {/* ── Page Header ─────────────────────────────────────────────────────── */}
-      <header style={{
+      <header className="ct-page-header" style={{
         height: 64, display: 'flex', alignItems: 'center',
         padding: '0 32px', borderBottom: '1px solid var(--ct-border)', flexShrink: 0,
       }}>
@@ -409,7 +409,7 @@ export function SettingsClient({ initial }: Props) {
       </header>
 
       {/* ── Content ─────────────────────────────────────────────────────────── */}
-      <div style={{
+      <div className="ct-page-body" style={{
         flex: 1, overflowY: 'auto',
         padding: '28px 32px',
         display: 'flex', flexDirection: 'column', gap: 20,

@@ -289,10 +289,13 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
   )
 
   return (
-    <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
 
       {/* ── Canvas ─────────────────────────────────────────────────────── */}
-      <div style={{ flexShrink: 0 }}>
+      <div style={{ flexShrink: 0, maxWidth: "100%", overflowX: "auto" }}>
+        <p className="md:hidden" style={{ fontSize: 12, color: "#FCD34D", marginBottom: 8, lineHeight: 1.5 }}>
+          Designing works best on a larger screen. Dragging needs a mouse, so on a phone you can scroll sideways to see the whole certificate and use the side panel below for sizes and colours.
+        </p>
         <div
           ref={containerRef}
           style={{

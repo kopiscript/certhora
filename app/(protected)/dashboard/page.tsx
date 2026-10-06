@@ -64,7 +64,7 @@ export default async function DashboardPage() {
     <div className="flex flex-col flex-1">
       {/* Top bar */}
       <header
-        className="h-16 flex items-center px-8 border-b shrink-0"
+        className="min-h-16 py-2 flex items-center px-4 md:px-8 border-b shrink-0"
         style={{ borderColor: "var(--ct-border)" }}
       >
         <div>
@@ -83,7 +83,7 @@ export default async function DashboardPage() {
       </header>
 
       {/* Content */}
-      <div className="flex-1 p-8 space-y-8">
+      <div className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8">
 
         {/* Welcome */}
         <div>

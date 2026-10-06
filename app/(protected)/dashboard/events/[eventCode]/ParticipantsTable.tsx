@@ -107,7 +107,8 @@ export function ParticipantsTable({ certificates, eventCode }: { certificates: C
       background: "var(--ct-surface)", border: "1px solid var(--ct-border)",
       borderRadius: 10, overflow: "hidden",
     }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
             <th style={{ padding: "10px 14px", width: 32 }}>
@@ -150,7 +151,7 @@ export function ParticipantsTable({ certificates, eventCode }: { certificates: C
                   {c.certId}
                 </Link>
               </td>
-              <td style={{ padding: "10px 14px", fontSize: 13, color: "var(--ct-text)", maxWidth: 300 }}>
+              <td style={{ padding: "10px 14px", fontSize: 13, color: "var(--ct-text)", minWidth: 180, maxWidth: 300 }}>
                 <span
                   title={c.participantName}
                   style={{
@@ -185,6 +186,7 @@ export function ParticipantsTable({ certificates, eventCode }: { certificates: C
           ))}
         </tbody>
       </table>
+      </div>
 
       {totalPages > 1 && (
         <div style={{

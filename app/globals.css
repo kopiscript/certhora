@@ -255,3 +255,57 @@
   margin-bottom: 6px;
 }
 
+
+/* ── Phone layout (dashboard) ──────────────────────────────────────────────────
+   Everything below only applies on small screens; desktop styling is unchanged. */
+@media (max-width: 767px) {
+  .ct-page-header {
+    height: auto !important;
+    min-height: 56px;
+    padding: 10px 16px !important;
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .ct-page-body { padding: 16px !important; }
+  .ct-banner { padding-left: 16px !important; padding-right: 16px !important; }
+  .ct-footer-bar { padding: 12px 16px !important; }
+  .ct-sticky-filter { top: 56px !important; padding: 12px 16px !important; }
+  .ct-stack-sm { grid-template-columns: 1fr !important; }
+
+  /* 16px inputs stop iOS from zooming the page when a field is focused */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Participants list: each table row becomes a card */
+  .ct-cards,
+  .ct-cards tbody { display: block; width: 100%; }
+  .ct-cards thead { display: none; }
+  .ct-cards tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ct-border);
+  }
+  .ct-cards td {
+    display: block;
+    padding: 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    border: 0 !important;
+  }
+  .ct-cards td.ct-c-main { flex: 1 1 calc(100% - 44px); min-width: 0 !important; }
+  .ct-cards td.ct-c-actions { margin-left: auto; }
+}
+
+@media (max-width: 639px) {
+  .event-card-row { flex-wrap: wrap; padding: 14px; gap: 12px; }
+  /* title + code get a full row; participant count and buttons sit on the row below */
+  .event-card-row .ct-ec-main { flex: 1 1 calc(100% - 56px) !important; }
+  .event-card-row .ct-ec-count { margin-right: auto; text-align: left !important; }
+}

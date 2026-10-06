@@ -191,7 +191,7 @@ export default async function AnalyticsPage({
   return (
     <div className="flex flex-col flex-1">
       <header
-        className="h-16 flex items-center justify-between gap-4 px-8 border-b shrink-0"
+        className="min-h-16 py-2 flex flex-wrap items-center justify-between gap-3 md:gap-4 px-4 md:px-8 border-b shrink-0"
         style={{ borderColor: "var(--ct-border)" }}
       >
         <div>
@@ -207,7 +207,7 @@ export default async function AnalyticsPage({
         <AnalyticsEventFilter events={events} selected={selected} />
       </header>
 
-      <div className="flex-1 p-8 space-y-8">
+      <div className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {KPIS.map(({ label, value, lines, icon: Icon }) => (
             <div key={label} className="rounded-xl p-5 border flex flex-col gap-4" style={cardStyle}>

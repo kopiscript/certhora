@@ -28,14 +28,16 @@ interface AppSidebarProps {
   orgName: string
   email: string
   tier: string
+  open?: boolean
+  onNavigate?: () => void
 }
 
-export function AppSidebar({ orgName, email, tier }: AppSidebarProps) {
+export function AppSidebar({ orgName, email, tier, open = false, onNavigate }: AppSidebarProps) {
   const pathname = usePathname()
 
   return (
     <aside
-      className="flex flex-col w-56 shrink-0 border-r h-screen sticky top-0"
+      className={`flex flex-col w-64 md:w-56 shrink-0 border-r h-dvh md:h-screen fixed md:sticky top-0 left-0 z-50 md:z-auto transition-transform duration-200 ease-out md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       style={{ background: "var(--card)", borderColor: "var(--ct-border)" }}
     >
       {/* Logo */}
@@ -58,6 +60,7 @@ export function AppSidebar({ orgName, email, tier }: AppSidebarProps) {
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ease-out"
               style={{
                 background: active ? "var(--ct-blue-dim)" : "transparent",

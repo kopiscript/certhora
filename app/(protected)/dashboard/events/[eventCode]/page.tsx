@@ -94,7 +94,7 @@ export default async function EventDetailPage({ params }: Props) {
 
   return (
     <div className="flex flex-col flex-1">
-      <header className="h-16 flex items-center justify-between px-8 border-b shrink-0"
+      <header className="min-h-16 py-2 flex flex-wrap items-center justify-between gap-3 px-4 md:px-8 border-b shrink-0"
         style={{ borderColor: "var(--ct-border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Link href="/dashboard/events">
@@ -123,7 +123,7 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
           <Link
             href={`/dashboard/events/new?duplicateFrom=${eventCode}`}
             title="Duplicate this event (copies its settings and design)"
@@ -181,7 +181,7 @@ export default async function EventDetailPage({ params }: Props) {
         </div>
       </header>
 
-      <div className="flex-1 p-8 overflow-auto" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div className="flex-1 p-4 md:p-8 overflow-auto" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
         {/* ── Info cards ─────────────────────────────────────────────── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>

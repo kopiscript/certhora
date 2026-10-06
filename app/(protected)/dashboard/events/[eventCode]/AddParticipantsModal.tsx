@@ -191,13 +191,13 @@ export function AddParticipantsModal({
                   display: "flex", flexDirection: "column", gap: 8, padding: 10,
                   border: "1px solid var(--ct-border)", borderRadius: 10,
                 } : undefined}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                   <input
                     className="ct-input"
                     placeholder="Full name"
                     value={row.name}
                     onChange={e => updateRow(i, "name", e.target.value)}
-                    style={{ flex: 1 }}
+                    style={{ flex: "1 1 150px", minWidth: 0 }}
                   />
                   <input
                     className="ct-input"
@@ -205,7 +205,7 @@ export function AddParticipantsModal({
                     type="email"
                     value={row.email}
                     onChange={e => updateRow(i, "email", e.target.value)}
-                    style={{ flex: 1 }}
+                    style={{ flex: "1 1 150px", minWidth: 0 }}
                   />
                   <button
                     onClick={() => removeRow(i)}

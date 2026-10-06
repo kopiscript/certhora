@@ -127,7 +127,7 @@ export default function NewEventPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      <header className="h-16 flex items-center justify-between px-8 border-b shrink-0"
+      <header className="ct-page-header h-16 flex items-center justify-between px-8 border-b shrink-0"
         style={{ borderColor: "var(--ct-border)" }}>
         <div>
           <h1 className="text-sm font-semibold">{duplicateFrom ? "Duplicate Event" : "New Event"}</h1>
@@ -147,7 +147,7 @@ export default function NewEventPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto" style={{ padding: step === 2 ? "32px" : "32px", maxWidth: step === 2 ? "none" : 680 }}>
+      <div className="ct-page-body flex-1 overflow-auto" style={{ padding: step === 2 ? "32px" : "32px", maxWidth: step === 2 ? "none" : 680 }}>
 
         {loadingDuplicate && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "40px 0", color: "var(--ct-text-3)", fontSize: 13 }}>
@@ -174,7 +174,7 @@ export default function NewEventPage() {
                 style={inputStyle} />
             </Field>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="ct-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <Field label="Event Date" hint="Shown on the certificate page. Optional.">
                 <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)}
                   style={inputStyle} />
