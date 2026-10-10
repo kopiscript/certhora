@@ -25,6 +25,9 @@ export interface AdditionalPlaceholder {
   fontSize: number
   color: string
   font: string
+  // Optional text box size (px on the 1200x840 canvas). Unset keeps the original single line.
+  maxWidth?: number
+  maxHeight?: number
 }
 
 export interface TemplateLayout {
@@ -60,7 +63,11 @@ interface Props {
   onChange: (layout: TemplateLayout, imageUrl: string | null) => void
 }
 
-type DragTarget = { kind: "name" | "qr" | "name-resize" | "name-resize-v" } | { kind: "additional"; id: string } | null
+type DragTarget =
+  | { kind: "name" | "qr" | "name-resize" | "name-resize-v" }
+  | { kind: "additional"; id: string }
+  | { kind: "additional-resize"; id: string; axis: "h" | "v" }
+  | null
 type Guide = { axis: "h" | "v"; pos: number }
 
 const SNAP = 10 // snap threshold in physical px
@@ -143,6 +150,7 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
       oy = my - p.y * SCALE
       setSelectedId(target.id)
     }
+    if (target?.kind === "additional-resize") setSelectedId(target.id)
     dragRef.current = { target, ox, oy }
   }
 
@@ -164,6 +172,27 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
         if (hit) width = hit
         width = Math.max(120, Math.min(width, CERT_W))
         setLayout(p => ({ ...p, nameMaxWidth: Math.round(width) }))
+        return
+      }
+
+      if (target?.kind === "additional-resize") {
+        const ph = layoutRef.current.additional.find(a => a.id === target.id)
+        if (!ph) return
+        if (target.axis === "h") {
+          const width = Math.max(40, Math.min(Math.abs(mx / SCALE - ph.x) * 2, CERT_W))
+          setLayout(p => ({
+            ...p,
+            additional: p.additional.map(a => (a.id === target.id ? { ...a, maxWidth: Math.round(width) } : a)),
+          }))
+        } else {
+          const height = Math.max(20, Math.min(Math.abs(my / SCALE - ph.y) * 2, CERT_H))
+          setLayout(p => ({
+            ...p,
+            additional: p.additional.map(a =>
+              a.id === target.id ? { ...a, maxHeight: Math.round(height), maxWidth: a.maxWidth ?? 300 } : a
+            ),
+          }))
+        }
         return
       }
 
@@ -459,6 +488,7 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
             <div
               key={p.id}
               onMouseDown={e => onMouseDown(e, { kind: "additional", id: p.id })}
+              onClick={e => e.stopPropagation()}
               style={{
                 position: "absolute",
                 left: p.x * SCALE,
@@ -470,18 +500,53 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
                 borderRadius: 4,
                 background: selectedId === p.id ? "rgba(234,179,8,0.12)" : "rgba(234,179,8,0.06)",
                 whiteSpace: "nowrap",
+                ...(p.maxWidth ? { width: p.maxWidth * SCALE, boxSizing: "border-box" as const, textAlign: "center" as const } : {}),
+                ...(p.maxHeight
+                  ? { height: p.maxHeight * SCALE, boxSizing: "border-box" as const, display: "flex", alignItems: "center", justifyContent: "center" }
+                  : {}),
               }}
             >
+              {selectedId === p.id && (
+                <>
+                  {(["left", "right"] as const).map(side => (
+                    <div
+                      key={side}
+                      onMouseDown={e => onMouseDown(e, { kind: "additional-resize", id: p.id, axis: "h" })}
+                      title="Drag to change the text box width"
+                      style={{
+                        position: "absolute", top: "50%", [side]: -6,
+                        width: 10, height: 20, marginTop: -10,
+                        borderRadius: 3, background: "#B45309", border: "1.5px solid white",
+                        cursor: "ew-resize", zIndex: 2,
+                      }}
+                    />
+                  ))}
+                  {(["top", "bottom"] as const).map(side => (
+                    <div
+                      key={side}
+                      onMouseDown={e => onMouseDown(e, { kind: "additional-resize", id: p.id, axis: "v" })}
+                      title="Drag to change the text box height"
+                      style={{
+                        position: "absolute", left: "50%", [side]: -6,
+                        width: 20, height: 10, marginLeft: -10,
+                        borderRadius: 3, background: "#B45309", border: "1.5px solid white",
+                        cursor: "ns-resize", zIndex: 2,
+                      }}
+                    />
+                  ))}
+                </>
+              )}
               <span style={{
                 fontSize: Math.max(p.fontSize * SCALE, 9),
                 fontFamily: p.font,
                 color: p.color,
                 display: "block",
+                ...(p.maxWidth ? { maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" } : {}),
               }}>
                 {p.value || p.label}
               </span>
               <div style={{
-                position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)",
+                position: "absolute", top: -8, left: 6,
                 background: "#B45309", borderRadius: 3, padding: "1px 5px",
                 fontSize: 9, color: "white", fontWeight: 600, letterSpacing: 0.5,
                 pointerEvents: "none", whiteSpace: "nowrap",
@@ -708,6 +773,19 @@ export function TemplateEditor({ initial, initialImageUrl, onChange }: Props) {
                         onChange={v => updateAdditional(p.id, { y: v })} />
                     </Field>
                   </TwoCol>
+                  <TwoCol>
+                    <Field label="Box width (px)">
+                      <OptionalNum value={p.maxWidth} min={40} max={CERT_W}
+                        onChange={v => updateAdditional(p.id, { maxWidth: v })} />
+                    </Field>
+                    <Field label="Box height (px)">
+                      <OptionalNum value={p.maxHeight} min={20} max={CERT_H}
+                        onChange={v => updateAdditional(p.id, { maxHeight: v })} />
+                    </Field>
+                  </TwoCol>
+                  <p style={{ fontSize: 11, color: "var(--ct-text-3)", lineHeight: 1.5 }}>
+                    Select the field on the canvas and drag its handles to resize. Long text wraps and shrinks to stay inside the box. Leave both empty for a single line.
+                  </p>
                 </div>
               )}
             </div>
@@ -756,6 +834,33 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <p style={{ fontSize: 11, color: "var(--ct-text-3)", marginBottom: 4 }}>{label}</p>
       {children}
+    </div>
+  )
+}
+
+function OptionalNum({ value, min, max, onChange }: { value: number | undefined; min: number; max: number; onChange: (v: number | undefined) => void }) {
+  return (
+    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+      <input
+        type="number" min={min} max={max} placeholder="Auto"
+        value={value ?? ""}
+        onChange={e => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+        style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+      />
+      {value !== undefined && (
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          title="Back to automatic"
+          style={{
+            height: 32, padding: "0 6px", borderRadius: 6, fontSize: 11,
+            border: "1px solid var(--ct-border)", background: "transparent",
+            color: "var(--ct-text-2)", cursor: "pointer",
+          }}
+        >
+          Auto
+        </button>
+      )}
     </div>
   )
 }

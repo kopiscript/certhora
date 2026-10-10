@@ -52,6 +52,9 @@ export interface AdditionalPlaceholder {
   // paper title. Left unset, existing placeholders keep their original single-line
   // behavior unchanged.
   maxWidth?: number
+  // Optional box height. With a height set the text also shrinks until the whole wrapped
+  // block fits inside it (needs maxWidth; a default width is used if only height is set).
+  maxHeight?: number
 }
 
 export interface URLConfig {
@@ -417,8 +420,8 @@ function buildAdditionalsSVG(
 
     // A designated maxWidth means this value can be long enough to need wrapping (e.g. a
     // per-certificate paper title) rather than overflowing past the box on one line.
-    if (p.maxWidth) {
-      const wrapped = wrapNameText(value, fontSize, safeNum(p.maxWidth, 400), p.font, !!p.bold)
+    if (p.maxWidth || p.maxHeight) {
+      const wrapped = wrapNameText(value, fontSize, safeNum(p.maxWidth, 400), p.font, !!p.bold, p.maxHeight ? safeNum(p.maxHeight, 0) : null)
       const lineHeight = wrapped.fontSize * LINE_HEIGHT_RATIO
       const firstLineY = y - ((wrapped.lines.length - 1) * lineHeight) / 2
       const tspans = wrapped.lines
